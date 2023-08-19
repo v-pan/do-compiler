@@ -1,6 +1,12 @@
 mod line;
 mod token;
-use line::lexer::LineLexer;
+mod node;
+mod parse;
+mod lexer;
+mod span;
+
+use lexer::TokenLexer;
+use span::Span;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -16,44 +22,28 @@ impl FileParser {
     }
 
     pub fn parse(&self) -> Result<(), std::io::Error> {
-        let mut buf_reader = BufReader::new(&self.file_handle);
-        let token_parser = token::TokenParser::new();
+        let buf_reader = BufReader::new(&self.file_handle);
 
-        'line: loop {
-            let mut contents = String::new();
-            let res = buf_reader.read_line(&mut contents)?;
+        for line in buf_reader.lines() {
+            let span = Span::default();
+            let token_lexer = TokenLexer::new(line?, span);
 
-            if res == 0 {
-                break Ok(())
-            }
-
-            let mut lexer = LineLexer::new(&contents);
-
-            'token: loop {
-                if let Some(s) = lexer.next() {
-                    let cur_token = token_parser.parse_token(s);
-
-                    use token::Token;
-                    if let Some(t) = cur_token {
-                        match t {
-                            Token::CommentStart => continue 'line,
-                            Token::FunctionDef => FileParser::parse_function_def(&mut lexer),
-                        }
+            for token in token_lexer {
+                match token {
+                    parse::Node::Fun(fun) => {
+                        println!("Function: {fun}");
                     }
-                } else {
-                    break 'token;
+                    _ => { break; }
                 }
-
             }
         }
-    }
 
-    fn parse_function_def(lexer: &mut LineLexer) {
-
+        Ok(())
     }
 }
 
-fn main() -> Result<(), std::io::Error> {
+use std::error::Error;
+fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("example.src").unwrap();
 
     let parser = FileParser::new(file);

@@ -1,6 +1,6 @@
 pub enum Token {
     CommentStart,
-    FunctionDef,
+    FunctionStart,
 }
 
 pub struct TokenParser {}
@@ -13,7 +13,7 @@ impl TokenParser {
     pub fn parse_token(&self, token: &str) -> Option<Token> {
         match token {
             "//" => Some(Token::CommentStart),
-            "fun" => Some(Token::FunctionDef),
+            "fun" => Some(Token::FunctionStart),
             _ => None
         }
     }
