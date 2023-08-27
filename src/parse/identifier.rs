@@ -1,7 +1,7 @@
 use crate::Span;
 use super::{SyntaxError, Parse};
 
-use std::io::{BufReader, Read, BufRead};
+use std::io::{BufReader, Read};
 use std::fs::File;
 use std::str::{from_utf8, from_utf8_unchecked};
 

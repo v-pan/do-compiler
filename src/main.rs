@@ -41,7 +41,6 @@ impl FileParser {
     }
 }
 
-use std::io::Read;
 use std::error::Error;
 fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("example.src").unwrap();
