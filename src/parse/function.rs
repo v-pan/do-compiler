@@ -32,7 +32,7 @@ impl FunctionArgument {
         let parts: Vec<_> = value.split(":").collect();
 
         let identifier = Identifier::new(parts[0], span);
-        let ty = Type::from(parts[1], span);
+        let ty = Type::from(parts[1], Span::after(identifier.span));
 
         let span = Span::new(span.start, value.len());
 
@@ -49,18 +49,20 @@ pub struct FunctionArguments {
 impl Parse for FunctionArguments {
     fn parse(reader: &mut BufReader<&File>, parent_span: Span) -> Result<Self, SyntaxError> {
         let mut arguments: Vec<FunctionArgument> = vec![];
-        
+
         // Read in the opening (
         reader.read(&mut [0;1]).unwrap();
 
-        let list = List::parse(reader, parent_span)?;
-
-        let mut last_span = Span::after(parent_span);
+        let list = List::parse(reader, Span::new(parent_span.start + 1, parent_span.size))?;
+        let mut arg_span = Span::new(list.span.start, 0);
         for item in list.items {
-            let arg = FunctionArgument::from(item, last_span);
-            last_span = arg.span;
+            let arg = FunctionArgument::from(item, arg_span);
+
+            arg_span = Span::after(arg.span);
             arguments.push(arg);
         }
+
+        let last_span = arg_span;
 
         Ok(FunctionArguments { arguments, span: Span::new(parent_span.start, last_span.start + last_span.size) })
     }
@@ -89,7 +91,7 @@ pub struct Function {
 }
 impl Parse for Function {
     fn parse(reader: &mut BufReader<&File>, span: Span) -> Result<Self, SyntaxError> {
-        let identifier = Identifier::parse(reader, span)?;
+        let identifier = Identifier::parse(reader, Span::after(span))?;
 
         // Parse args list
         let arguments = FunctionArguments::parse(reader, Span::after(identifier.span))?;
@@ -98,7 +100,7 @@ impl Parse for Function {
         // TODO
 
 
-        let mut fun_span = Span::after(span);
+        let mut fun_span = Span::new(span.start, 0);
         fun_span.size = (arguments.span.start + arguments.span.size) - fun_span.start;
         
         Ok(Function {

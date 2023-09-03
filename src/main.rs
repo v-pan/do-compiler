@@ -33,7 +33,7 @@ impl FileParser {
         let keyword = Keyword::parse(&mut buf_reader, span)?;
         match keyword {
             Keyword::Function(function) => {
-                println!("Got function {function}");
+                println!("Got function {function:#?}");
             }
         }
 
