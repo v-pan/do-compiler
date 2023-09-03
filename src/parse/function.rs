@@ -6,6 +6,7 @@ use super::r#type::Type;
 
 use std::io::{BufReader, Read};
 use std::fs::File;
+use std::str::{from_utf8, from_utf8_unchecked};
 
 #[derive(Debug)]
 pub struct FunctionArgument {
@@ -97,8 +98,41 @@ impl Parse for Function {
         let arguments = FunctionArguments::parse(reader, Span::after(identifier.span))?;
 
         // Parse return type
-        // TODO
+        // TODO: Move into its own iterator?
+        let mut bytes_read = 0;
 
+        let mut invalid_idx = 0;
+        let mut buf: [u8; 1] = [0; 1];
+        let return_type: Type = loop {
+            bytes_read += reader.read(&mut buf[invalid_idx..]).unwrap();
+            invalid_idx = 0;
+
+            // Read the next valid char
+            let cur_char = match from_utf8(&buf) {
+                Ok(c) => c,
+                Err(err) => {
+                    invalid_idx = err.valid_up_to();
+                    if err.error_len().is_none() {
+                        panic!("Reached invalid char")
+                    }
+                    unsafe { from_utf8_unchecked(&buf[..invalid_idx]) };
+                    todo!("Change buf to hold 4 bytes to handle variable length UTF8 chars")
+                }
+            };
+
+            // Stop reading at expected endpoints
+            match cur_char {
+                ":" => {
+                    let mut span = Span::after(arguments.span);
+                    span.start += bytes_read;
+                    break Type::parse(reader, span)?;
+                }
+                "{" => {
+                    break Type::Inferred;
+                }
+                _ => { },
+            }
+        };
 
         let mut fun_span = Span::new(span.start, 0);
         fun_span.size = (arguments.span.start + arguments.span.size) - fun_span.start;
@@ -106,7 +140,7 @@ impl Parse for Function {
         Ok(Function {
             identifier,
             arguments: Some(arguments),
-            return_type: Type::Inferred,
+            return_type,
             span: fun_span
         })
     }

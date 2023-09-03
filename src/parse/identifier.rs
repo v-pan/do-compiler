@@ -55,6 +55,7 @@ impl Parse for Identifier {
             // Stop reading at expected endpoints
             match cur_char {
                 "(" => { unread(); break },
+                "{" => { unread(); break },
                 " " => { unread(); break },
                 _ => {},
             }
