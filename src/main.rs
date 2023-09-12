@@ -1,52 +1,22 @@
-mod parse;
-mod span;
-
-use parse::Keyword;
-use parse::Parse;
-use span::Span;
+mod lexer;
+pub mod token;
 
 use std::fs::File;
+use std::error::Error;
 use std::io::BufReader;
 
-struct FileParser {
-    file: File
-}
+use lexer::Lexer;
 
-impl FileParser {
-    pub fn new(file: File) -> Self {
-        FileParser { file }
-    }
-
-    pub fn parse(&mut self) -> Result<(), parse::SyntaxError> {
-        let mut buf_reader = BufReader::new(&self.file);
-
-        // Expect:
-        //  - Include
-        //  - Function definition
-        //  - Struct definition
-        //  - Class definition
-        //  - Variable definition
-        //  - Value definition
-        //  - Expression
-
-        let span = Span::new(0, 0);
-        let keyword = Keyword::parse(&mut buf_reader, span)?;
-        match keyword {
-            Keyword::Function(function) => {
-                println!("Got function {function}");
-            }
-        }
-
-        Ok(())
-    }
-}
-
-use std::error::Error;
 fn main() -> Result<(), Box<dyn Error>> {
-    let file = File::open("example.src").unwrap();
+    let file = File::open("./example.src").unwrap();
+    let mut reader = BufReader::new(&file);
 
-    let mut parser = FileParser::new(file);
-    parser.parse()?;
+    let mut lexer = Lexer::new();
+    let mut tokens = vec![];
+
+    lexer.tokenize(&mut tokens, &mut reader);
+
+    println!("{:?}", &tokens);
 
     Ok(())
 }
