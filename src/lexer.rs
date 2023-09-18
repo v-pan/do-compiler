@@ -1,5 +1,6 @@
 use std::io::{BufReader, BufRead};
 
+use packed_struct::PackedStruct;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::token::{Token, TokenType};
@@ -13,7 +14,7 @@ impl Lexer {
         Lexer {  }
     }
 
-    pub fn tokenize<T: std::io::Read>(&mut self, tokens: &mut Vec<Token>, reader: &mut BufReader<T>) {
+    pub fn tokenize<T: std::io::Read>(&mut self, tokens: &mut Vec<[u8; 8]>, reader: &mut BufReader<T>) {
         let mut line = 0;
         let mut buf = String::new();
         
@@ -29,20 +30,20 @@ impl Lexer {
                 buf.split_word_bound_indices().filter_map(|(idx, word)| {
                     let idx = idx.try_into().unwrap();
 
-                    Token::try_keyword(line, idx, word)
+                    Token::try_keyword_packed(idx, word)
                     .or(
-                        Token::try_paren(line, idx, word)
+                        Token::try_paren_packed(idx, word)
                     ).or(
-                        Token::try_operator(line, idx, word)
+                        Token::try_operator_packed(idx, word)
                     ).or(
-                        Token::try_seperator(line, idx, word)
+                        Token::try_seperator_packed(idx, word)
                     ).or(
-                        Token::try_whitespace(line, idx, word)
+                        Token::try_whitespace_packed(idx, word)
                     ).or(
-                        Token::try_quote(line, idx, word)
+                        Token::try_quote_packed(idx, word)
                     ).or(
-                        Some(Token::new(line, idx, TokenType::Unknown))
-                    )
+                        Token::new(idx, TokenType::Unknown).pack()
+                    ).ok()
                 })
             );
 
