@@ -11,7 +11,7 @@ impl Display for TokenizationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TokenizationError::NoMatch => write!(f, "Found no matching token"),
-            TokenizationError::Packing(err) => write!(f, "Could not pack token")
+            TokenizationError::Packing(..) => write!(f, "Could not pack token")
         }
     }
 }
