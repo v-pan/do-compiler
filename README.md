@@ -9,8 +9,8 @@ Despite being a basis to learn about compilers, this project is intended to seri
 
 1. Compilation should be fast.
     - Specifically I'm aiming for the same average runtime goals as mentioned in [the above talk](https://youtu.be/ZI198eFghJk) of:
-      - Lexing and parsing at 100 ns/line. Currently lexing 80 char lines at ~60ns/line, with parsing only partially implemented.
-      - Semantic analysis at 1 μs/line. Currently unimplemented.
+      - Lexing and parsing at 100 ns/line.
+      - Semantic analysis at 1 μs/line.
 2. Compilation should be descriptive. Error diagnostics should be clear, reference related code as precisely as possible, and suggest context sensitive helpful changes.
 
 While inspiration will inevitably be taken from Carbon's toolchain, I expect this project to diverge in approach with time as the above goals are reconsidered, and I learn about other language/compiler's approaches (eg. Zig).
