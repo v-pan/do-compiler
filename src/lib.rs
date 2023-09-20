@@ -7,7 +7,7 @@ pub mod error;
 pub mod parse;
 
 #[allow(dead_code)]
-const READER_CAPACITY: usize = 500_000_000;
+const READER_CAPACITY: usize = 100_000_000;
 
 #[cfg(test)]
 mod tests {
