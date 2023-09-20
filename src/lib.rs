@@ -4,7 +4,7 @@ extern crate test;
 pub mod lexer;
 pub mod token;
 pub mod error;
-pub mod parser;
+pub mod parse;
 
 #[allow(dead_code)]
 const READER_CAPACITY: usize = 500_000_000;
