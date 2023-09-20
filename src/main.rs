@@ -1,52 +1,30 @@
-mod parse;
-mod span;
-
-use parse::Keyword;
-use parse::Parse;
-use span::Span;
+#![feature(iter_map_windows)]
 
 use std::fs::File;
+use std::error::Error;
 use std::io::BufReader;
 
-struct FileParser {
-    file: File
-}
+use llvm_compiler::{lexer::{AsciiLexer, Lexer}, parse::parser::Parser, token::Token};
 
-impl FileParser {
-    pub fn new(file: File) -> Self {
-        FileParser { file }
-    }
+const READER_CAPACITY: usize = 500_000_000; // 500mb
 
-    pub fn parse(&mut self) -> Result<(), parse::SyntaxError> {
-        let mut buf_reader = BufReader::new(&self.file);
-
-        // Expect:
-        //  - Include
-        //  - Function definition
-        //  - Struct definition
-        //  - Class definition
-        //  - Variable definition
-        //  - Value definition
-        //  - Expression
-
-        let span = Span::new(0, 0);
-        let keyword = Keyword::parse(&mut buf_reader, span)?;
-        match keyword {
-            Keyword::Function(function) => {
-                println!("Got function {function}");
-            }
-        }
-
-        Ok(())
-    }
-}
-
-use std::error::Error;
 fn main() -> Result<(), Box<dyn Error>> {
-    let file = File::open("example.src").unwrap();
+    let file = File::open("./examples/infix.src").unwrap();
+    let mut reader = BufReader::with_capacity(READER_CAPACITY, &file);
 
-    let mut parser = FileParser::new(file);
-    parser.parse()?;
+    let tokens = AsciiLexer::new().tokenize_from_reader(&mut reader);
+
+    println!("{:?}", &tokens);
+    // let token = &tokens[1];
+    // println!("Last: {token:?}, get_string: {}", token.get_string(&tokens, &mut reader));
+
+    let print_token = |token: &Token, reader: &mut BufReader<&File>| { print!("{}", token.get_string(&tokens, reader)) };
+    tokens.iter().for_each(|token| { print_token(token, &mut reader) });
+
+    println!();
+
+    let parsed = Parser::parse(&tokens);
+    parsed.iter().map(|idx| &tokens[*idx]).for_each(|token| { print_token(token, &mut reader) });
 
     Ok(())
 }
