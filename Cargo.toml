@@ -7,3 +7,6 @@ edition = "2021"
 packed_struct = "0.10.1"
 unicode-segmentation = "1.10.1"
 token-macro = { path = "./token-macro" }
+
+[profile.release]
+debug = 1

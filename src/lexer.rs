@@ -9,38 +9,38 @@ use crate::token::Token;
 // Benchmarks suggest this is faster than using a HashSet.
 const WORD_BOUNDARIES: [char; 24] = ['\n', ' ', '"', '#', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '`', '{', '}'];
 
-pub struct UnicodeLexer {}
+// pub struct UnicodeLexer {}
 
-impl UnicodeLexer {
-    pub fn new() -> UnicodeLexer {
-        UnicodeLexer {  }
-    }
-}
+// impl UnicodeLexer {
+//     pub fn new() -> UnicodeLexer {
+//         UnicodeLexer {  }
+//     }
+// }
 
-impl Lexer for UnicodeLexer {
-    fn tokenize<T: std::io::Read>(&mut self, tokens: &mut Vec<Token>, reader: &mut BufReader<T>) {
-        let mut total_bytes = 0;
-        let mut buf = String::new();
+// impl Lexer for UnicodeLexer {
+//     fn tokenize<T: std::io::Read>(&mut self, tokens: &mut Vec<Token>, reader: &mut BufReader<T>) {
+//         let mut total_bytes = 0;
+//         let mut buf = String::new();
 
-        loop {
-            buf.clear();
-            let bytes_read = reader.read_line(&mut buf).unwrap();
+//         loop {
+//             buf.clear();
+//             let bytes_read = reader.read_line(&mut buf).unwrap();
 
-            if bytes_read == 0 {
-                break;
-            }
+//             if bytes_read == 0 {
+//                 break;
+//             }
 
-            let filter = buf.split_word_bound_indices().filter_map(|(idx, word)| {
-                let idx = (idx + total_bytes).try_into().unwrap();
+//             let filter = buf.split_word_bound_indices().filter_map(|(idx, word)| {
+//                 let idx = (idx + total_bytes).try_into().unwrap();
 
-                Token::new(idx, word).into()
-            });
+//                 Token::new(idx, word).into()
+//             });
 
-            tokens.extend(filter);
+//             tokens.extend(filter);
 
-            total_bytes += bytes_read;
-        }
-    }
+//             total_bytes += bytes_read;
+//         }
+//     }
 
     // fn tokenize_packed<T: std::io::Read>(&mut self, tokens: &mut Vec<[u8; 5]>, reader: &mut BufReader<T>) {
     //     let mut total_bytes = 0;
@@ -65,7 +65,7 @@ impl Lexer for UnicodeLexer {
     //         total_bytes += bytes_read;
     //     }
     // }
-}
+// }
 
 pub struct AsciiLexer {}
 
