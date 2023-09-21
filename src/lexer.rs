@@ -92,10 +92,11 @@ impl Lexer for AsciiLexer {
 
             // Split on boundary characters, push the resulting tokens to vec
             buf.match_indices(|c| {
-                WORD_BOUNDARIES.binary_search(&c).is_ok()
+                is_word_boundary(c)
+                // WORD_BOUNDARIES.binary_search(&c).is_ok()
             }).for_each(|(idx_in_line, sep)| {
                 if idx_in_line != last_idx {
-                    let word = &buf[last_idx..idx_in_line];
+                    let word = unsafe { buf.get_unchecked(last_idx..idx_in_line) };
 
                     let idx = (last_idx + total_bytes).try_into().unwrap();
                     let word_token = Token::new(idx, word);
@@ -125,5 +126,35 @@ pub trait Lexer {
         self.tokenize(&mut tokens, reader);
     
         tokens
+    }
+}
+
+fn is_word_boundary(word: char) -> bool {
+    match word {
+        '\n' => true,
+        ' ' => true,
+        '"' => true,
+        '#' => true,
+        '%' => true,
+        '&' => true,
+        '\'' => true,
+        '(' => true,
+        ')' => true,
+        '*' => true,
+        '+' => true,
+        ',' => true,
+        '-' => true,
+        '.' => true,
+        '/' => true,
+        ':' => true,
+        ';' => true,
+        '<' => true,
+        '=' => true,
+        '>' => true,
+        '?' => true,
+        '`' => true,
+        '{' => true,
+        '}' => true,
+        _ => false,
     }
 }

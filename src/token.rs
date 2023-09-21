@@ -10,20 +10,42 @@ pub struct Token {
 
 impl Token {
     pub fn new(loc: u32, word: &str) -> Self {
-        Token::try_keyword(loc, word)
-        .or(
-            Token::try_paren(loc, word)
-        ).or(
-            Token::try_operator(loc, word)
-        ).or(
-            Token::try_seperator(loc, word)
-        ).or(
-            Token::try_whitespace(loc, word)
-        ).or(
-            Token::try_quote(loc, word)
-        ).unwrap_or(
-            Token { loc, ty: TokenType::Unknown }
-        )
+        let token = match word {
+            // Keywords
+            "fun" => Some(Token { loc: loc.into(), ty: TokenType::FunctionDecl }),
+            "if" => Some(Token { loc: loc.into(), ty: TokenType::If }),
+            // Operators
+            "+" => Some(Token { loc: loc.into(), ty: TokenType::Plus }),
+            "-" => Some(Token { loc: loc.into(), ty: TokenType::Minus }),
+            "*" => Some(Token { loc: loc.into(), ty: TokenType::Star }),
+            "/" => Some(Token { loc: loc.into(), ty: TokenType::Slash }),
+
+            // Seperators 
+            ":" => Some(Token { loc: loc.into(), ty: TokenType::Colon }),
+            "," => Some(Token { loc: loc.into(), ty: TokenType::Comma }),
+            ";" => Some(Token { loc: loc.into(), ty: TokenType::SemiColon }),
+            // Quotes
+            "\"" => Some(Token { loc: loc.into(), ty: TokenType::DoubleQuote }),
+            "\'" => Some(Token { loc: loc.into(), ty: TokenType::SingleQuote }),
+            "`" => Some(Token { loc: loc.into(), ty: TokenType::Backtick }),
+
+            // Parens
+            "(" => Some(Token { loc: loc.into(), ty: TokenType::OpenParen }),
+            ")" => Some(Token { loc: loc.into(), ty: TokenType::CloseParen }),
+            "<" => Some(Token { loc: loc.into(), ty: TokenType::OpenAngle }),
+            ">" => Some(Token { loc: loc.into(), ty: TokenType::CloseAngle }),
+            "{" => Some(Token { loc: loc.into(), ty: TokenType::OpenCurly }),
+            "}" => Some(Token { loc: loc.into(), ty: TokenType::CloseCurly }),
+
+            // Whitespace
+            " " => Some(Token { loc: loc.into(), ty: TokenType::Space }),
+            "\n" => Some(Token { loc: loc.into(), ty: TokenType::Newline }),
+            "\r\n" => Some(Token { loc: loc.into(), ty: TokenType::Newline }),
+
+            _ => None
+        };
+
+        token.unwrap_or(Token { loc: loc.into(), ty: TokenType::Unknown } )
     }
 
     pub fn get_string(&self, tokens: &Vec<Token>, reader: &mut BufReader<&File>) -> String {
@@ -72,77 +94,60 @@ impl Token {
     //     }
     // }
 
-    pub fn try_keyword(loc: u32, word: &str) -> Option<Token> {
-        match word {
-            "fun" => Some(Token { loc: loc.into(), ty: TokenType::FunctionDecl }),
-            "if" => Some(Token { loc: loc.into(), ty: TokenType::If }),
-            _ => None
-        }
-    }
+    // pub fn try_keyword(loc: u32, word: &str) -> Option<Token> {
+    //     match word {
+            
+    //         _ => None
+    //     }
+    // }
     // pub fn try_keyword_packed(loc: u32, word: &str) -> Result<[u8; 5], TokenizationError> {
     //     Ok(Token::try_keyword(loc, word).ok_or(TokenizationError::NoMatch)?.pack()?)
     // }
 
-    pub fn try_paren(loc: u32, word: &str) -> Option<Token> {
-        match word {
-            "(" => Some(Token { loc: loc.into(), ty: TokenType::OpenParen }),
-            ")" => Some(Token { loc: loc.into(), ty: TokenType::CloseParen }),
-            "<" => Some(Token { loc: loc.into(), ty: TokenType::OpenAngle }),
-            ">" => Some(Token { loc: loc.into(), ty: TokenType::CloseAngle }),
-            "{" => Some(Token { loc: loc.into(), ty: TokenType::OpenCurly }),
-            "}" => Some(Token { loc: loc.into(), ty: TokenType::CloseCurly }),
-            _ => None
-        }
-    }
+    // pub fn try_paren(loc: u32, word: &str) -> Option<Token> {
+    //     match word {
+            
+    //     }
+    // }
     // pub fn try_paren_packed(loc: u32, word: &str) -> Result<[u8; 5], TokenizationError> {
     //     Ok(Token::try_paren(loc, word).ok_or(TokenizationError::NoMatch)?.pack()?)
     // }
 
-    pub fn try_operator(loc: u32, word: &str) -> Option<Token> {
-        match word {
-            "+" => Some(Token { loc: loc.into(), ty: TokenType::Plus }),
-            "-" => Some(Token { loc: loc.into(), ty: TokenType::Minus }),
-            "*" => Some(Token { loc: loc.into(), ty: TokenType::Star }),
-            "/" => Some(Token { loc: loc.into(), ty: TokenType::Slash }),
-            _ => None
-        }
-    }
+    // pub fn try_operator(loc: u32, word: &str) -> Option<Token> {
+    //     match word {
+            
+    //         _ => None
+    //     }
+    // }
     // pub fn try_operator_packed(loc: u32, word: &str) -> Result<[u8; 5], TokenizationError> {
     //     Ok(Token::try_operator(loc, word).ok_or(TokenizationError::NoMatch)?.pack()?)
     // }
 
-    pub fn try_seperator(loc: u32, word: &str) -> Option<Token> {
-        match word {
-            ":" => Some(Token { loc: loc.into(), ty: TokenType::Colon }),
-            "," => Some(Token { loc: loc.into(), ty: TokenType::Comma }),
-            ";" => Some(Token { loc: loc.into(), ty: TokenType::SemiColon }),
-            _ => None
-        }
-    }
+    // pub fn try_seperator(loc: u32, word: &str) -> Option<Token> {
+    //     match word {
+            
+    //         _ => None
+    //     }
+    // }
     // pub fn try_seperator_packed(loc: u32, word: &str) -> Result<[u8; 5], TokenizationError> {
     //     Ok(Token::try_seperator(loc, word).ok_or(TokenizationError::NoMatch)?.pack()?)
     // }
 
-    pub fn try_quote(loc: u32, word: &str) -> Option<Token> {
-        match word {
-            "\"" => Some(Token { loc: loc.into(), ty: TokenType::DoubleQuote }),
-            "\'" => Some(Token { loc: loc.into(), ty: TokenType::SingleQuote }),
-            "`" => Some(Token { loc: loc.into(), ty: TokenType::Backtick }),
-            _ => None
-        }
-    }
+    // pub fn try_quote(loc: u32, word: &str) -> Option<Token> {
+    //     match word {
+            
+    //     }
+    // }
     // pub fn try_quote_packed(loc: u32, word: &str) -> Result<[u8; 5], TokenizationError> {
     //     Ok(Token::try_quote(loc, word).ok_or(TokenizationError::NoMatch)?.pack()?)
     // }
 
-    pub fn try_whitespace(loc: u32, word: &str) -> Option<Token> {
-        match word {
-            " " => Some(Token { loc: loc.into(), ty: TokenType::Space }),
-            "\n" => Some(Token { loc: loc.into(), ty: TokenType::Newline }),
-            "\r\n" => Some(Token { loc: loc.into(), ty: TokenType::Newline }),
-            _ => None
-        }
-    }
+    // pub fn try_whitespace(loc: u32, word: &str) -> Option<Token> {
+    //     match word {
+            
+    //         _ => None
+    //     }
+    // }
     // pub fn try_whitespace_packed(loc: u32, word: &str) -> Result<[u8; 5], TokenizationError> {
     //     Ok(Token::try_whitespace(loc, word).ok_or(TokenizationError::NoMatch)?.pack()?)
     // }
