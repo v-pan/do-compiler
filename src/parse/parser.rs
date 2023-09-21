@@ -1,12 +1,72 @@
-use crate::token::{Token, TokenType, Associativity};
+use std::{io::BufReader, fs::File};
 
-use super::node::ParseNode;
+use crate::token::{Token, TokenType};
 
-pub struct Parser {}
+use super::{node::ParseNode, error::{ParseError, UnexpectedToken}, info::identifier::IdentifierInfo};
 
-impl Parser {
+pub struct ParseInfo {
+    identifiers: Vec<IdentifierInfo>,
+}
+impl Default for ParseInfo {
+    fn default() -> Self {
+        Self {
+            identifiers: vec![],
+        }
+    }
+}
+
+pub struct Parser<'b> {
+    reader: &'b mut BufReader<&'b File>,
+    parsed: Vec<ParseNode>,
+    context: ParseInfo,
+}
+impl<'b> Parser<'b> {
+    pub fn new(reader: &'b mut BufReader<&'b File>, tokens: &Vec<Token>) -> Self {
+        Self {
+            reader,
+            parsed: Vec::with_capacity(tokens.len()),
+            context: ParseInfo::default(),
+        }
+    }
+
     // Returns a clone of the token buffer such that a linear walk = post order traversal
-    pub fn parse(tokens: &Vec<Token>) -> Vec<ParseNode> {
+    pub fn parse(&mut self, tokens: &Vec<Token>) -> Result<Vec<ParseNode>, ParseError> {
+        let mut idx = 0;
+
+        while let Some(token) = tokens.get(idx) {
+            idx = match token.ty {
+                TokenType::FunctionDecl => self.parse_function(tokens, idx + 1)?,
+                _ => idx,
+            };
+        }
+
+        Ok(self.parsed.clone())
+    }
+
+    /**
+     * Parse a function from the token buffer starting at the given index.
+     * 
+     * Returns the final index after parsing
+     */
+    fn parse_function(&mut self, tokens: &Vec<Token>, starting_idx: usize) -> Result<usize, ParseError> {
+        let mut idx = starting_idx;
+        while let Some(token) = tokens.get(idx) {
+            if token.ty.is_whitespace() { // Skip whitespace
+                idx += 1;
+                continue;
+            }
+
+            if let TokenType::Identifier = token.ty {
+                
+            } else {
+                return Err(UnexpectedToken::new(*token, TokenType::Identifier));
+            };
+        }
+
+        Ok(starting_idx)
+    }
+
+    pub fn parse_expr(tokens: &[Token]) {
         let mut parsed: Vec<ParseNode> = Vec::with_capacity(tokens.len());
 
         let mut stack: Vec<ParseNode> = vec![];
@@ -86,7 +146,5 @@ impl Parser {
 
             parsed.push(token_idx);
         }
-        
-        parsed
     }
 }

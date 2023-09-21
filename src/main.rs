@@ -4,12 +4,10 @@ use std::fs::File;
 use std::error::Error;
 use std::io::BufReader;
 
-use llvm_compiler::{lexer::{AsciiLexer, Lexer}, parse::parser::Parser, token::Token};
-
-const READER_CAPACITY: usize = 500_000_000; // 500mb
+use llvm_compiler::{lexer::{AsciiLexer, Lexer}, parse::parser::Parser, token::Token, READER_CAPACITY};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let file = File::open("./examples/infix.src").unwrap();
+    let file = File::open("./examples/example.src").unwrap();
     let mut reader = BufReader::with_capacity(READER_CAPACITY, &file);
 
     let tokens = AsciiLexer::new().tokenize_from_reader(&mut reader);
@@ -21,9 +19,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let print_token = |token: &Token, reader: &mut BufReader<&File>| { print!("{}", token.get_string(&tokens, reader)) };
     tokens.iter().for_each(|token| { print_token(token, &mut reader) });
 
-    println!();
+    // println!();
 
-    let parsed = Parser::parse(&tokens);
+    let parsed = match Parser::new(&mut reader, &tokens).parse(&tokens) {
+        Ok(result) => result,
+        Err(parse_err) => { panic!("{parse_err}") }
+    };
+
+    let mut reader = BufReader::with_capacity(READER_CAPACITY, &file);
     parsed.iter().map(|idx| &tokens[*idx]).for_each(|token| { print_token(token, &mut reader) });
 
     Ok(())

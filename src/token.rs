@@ -212,6 +212,7 @@ pub enum TokenType {
 
     Identifier,
     Literal,
+    StringLiteral,
 }
 
 impl TokenType {
@@ -247,6 +248,7 @@ impl TokenType {
             TokenType::Unknown => false,
             TokenType::Identifier => false,
             TokenType::Literal => false,
+            TokenType::StringLiteral => false,
         }
     }
 
@@ -282,6 +284,7 @@ impl TokenType {
             TokenType::Unknown => false,
             TokenType::Identifier => false,
             TokenType::Literal => false,
+            TokenType::StringLiteral => false,
         }
     }
 
@@ -318,6 +321,7 @@ impl TokenType {
             TokenType::Unknown => Some((4, Associativity::Right)), // Assumed to be a function call, treated as a unary operator
             TokenType::Identifier => None,
             TokenType::Literal => None,
+            TokenType::StringLiteral => None,
         }
     }
 }
