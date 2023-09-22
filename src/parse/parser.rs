@@ -48,7 +48,7 @@ impl<'b> Parser<'b> {
      * 
      * Returns the final index after parsing
      */
-    fn parse_function(&mut self, tokens: &Vec<Token>, starting_idx: usize) -> Result<usize, ParseError> {
+    fn parse_function(&mut self, tokens: &[Token], starting_idx: usize) -> Result<usize, ParseError> {
         let mut idx = starting_idx;
         while let Some(token) = tokens.get(idx) {
             if token.ty.is_whitespace() { // Skip whitespace

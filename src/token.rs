@@ -12,43 +12,43 @@ impl Token {
     pub fn new(loc: u32, word: &str) -> Self {
         let token = match word {
             // Keywords
-            "fun" => Some(Token { loc: loc.into(), ty: TokenType::FunctionDecl }),
-            "if" => Some(Token { loc: loc.into(), ty: TokenType::If }),
+            "fun" => Some(Token { loc, ty: TokenType::FunctionDecl }),
+            "if" => Some(Token { loc, ty: TokenType::If }),
             // Operators
-            "+" => Some(Token { loc: loc.into(), ty: TokenType::Plus }),
-            "-" => Some(Token { loc: loc.into(), ty: TokenType::Minus }),
-            "*" => Some(Token { loc: loc.into(), ty: TokenType::Star }),
-            "/" => Some(Token { loc: loc.into(), ty: TokenType::Slash }),
+            "+" => Some(Token { loc, ty: TokenType::Plus }),
+            "-" => Some(Token { loc, ty: TokenType::Minus }),
+            "*" => Some(Token { loc, ty: TokenType::Star }),
+            "/" => Some(Token { loc, ty: TokenType::Slash }),
 
             // Seperators 
-            ":" => Some(Token { loc: loc.into(), ty: TokenType::Colon }),
-            "," => Some(Token { loc: loc.into(), ty: TokenType::Comma }),
-            ";" => Some(Token { loc: loc.into(), ty: TokenType::SemiColon }),
+            ":" => Some(Token { loc, ty: TokenType::Colon }),
+            "," => Some(Token { loc, ty: TokenType::Comma }),
+            ";" => Some(Token { loc, ty: TokenType::SemiColon }),
             // Quotes
-            "\"" => Some(Token { loc: loc.into(), ty: TokenType::DoubleQuote }),
-            "\'" => Some(Token { loc: loc.into(), ty: TokenType::SingleQuote }),
-            "`" => Some(Token { loc: loc.into(), ty: TokenType::Backtick }),
+            "\"" => Some(Token { loc, ty: TokenType::DoubleQuote }),
+            "\'" => Some(Token { loc, ty: TokenType::SingleQuote }),
+            "`" => Some(Token { loc, ty: TokenType::Backtick }),
 
             // Parens
-            "(" => Some(Token { loc: loc.into(), ty: TokenType::OpenParen }),
-            ")" => Some(Token { loc: loc.into(), ty: TokenType::CloseParen }),
-            "<" => Some(Token { loc: loc.into(), ty: TokenType::OpenAngle }),
-            ">" => Some(Token { loc: loc.into(), ty: TokenType::CloseAngle }),
-            "{" => Some(Token { loc: loc.into(), ty: TokenType::OpenCurly }),
-            "}" => Some(Token { loc: loc.into(), ty: TokenType::CloseCurly }),
+            "(" => Some(Token { loc, ty: TokenType::OpenParen }),
+            ")" => Some(Token { loc, ty: TokenType::CloseParen }),
+            "<" => Some(Token { loc, ty: TokenType::OpenAngle }),
+            ">" => Some(Token { loc, ty: TokenType::CloseAngle }),
+            "{" => Some(Token { loc, ty: TokenType::OpenCurly }),
+            "}" => Some(Token { loc, ty: TokenType::CloseCurly }),
 
             // Whitespace
-            " " => Some(Token { loc: loc.into(), ty: TokenType::Space }),
-            "\n" => Some(Token { loc: loc.into(), ty: TokenType::Newline }),
-            "\r\n" => Some(Token { loc: loc.into(), ty: TokenType::Newline }),
+            " " => Some(Token { loc, ty: TokenType::Space }),
+            "\n" => Some(Token { loc, ty: TokenType::Newline }),
+            "\r\n" => Some(Token { loc, ty: TokenType::Newline }),
 
             _ => None
         };
 
-        token.unwrap_or(Token { loc: loc.into(), ty: TokenType::Unknown } )
+        token.unwrap_or(Token { loc, ty: TokenType::Unknown } )
     }
 
-    pub fn get_string(&self, tokens: &Vec<Token>, reader: &mut BufReader<&File>) -> String {
+    pub fn get_string(&self, tokens: &[Token], reader: &mut BufReader<File>) -> String {
         let idx = tokens.binary_search_by(|other| { other.loc.cmp(&self.loc) }).expect("Did not find token");
         let pos = SeekFrom::Start(self.loc.try_into().unwrap());
 

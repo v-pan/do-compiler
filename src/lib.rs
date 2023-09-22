@@ -19,9 +19,10 @@ mod tests {
 
     #[bench]
     fn bench_ascii_tokenize(b: &mut Bencher) {
-        let mut lexer = AsciiLexer::new();
         let file = File::open("./examples/example.src").unwrap();
-        let mut reader = BufReader::with_capacity(READER_CAPACITY, &file);
+        let mut lexer = AsciiLexer::new();
+        let mut reader = BufReader::new(file);
+        // let mut reader = BufReader::with_capacity(READER_CAPACITY, file);
         
         b.iter(|| {
             reader.rewind().unwrap();
@@ -32,9 +33,9 @@ mod tests {
 
     #[bench]
     fn bench_token_clone(b: &mut Bencher) {
-        let mut lexer = AsciiLexer::new();
         let file = File::open("./examples/example.src").unwrap();
-        let mut reader = BufReader::with_capacity(READER_CAPACITY, &file);
+        let mut lexer = AsciiLexer::new();
+        let mut reader = BufReader::with_capacity(READER_CAPACITY, file);
         let tokens = lexer.tokenize_from_reader(&mut reader);
 
         b.iter(|| {
@@ -44,9 +45,9 @@ mod tests {
 
     #[bench]
     fn bench_ascii_tokenize_80_char_lines(b: &mut Bencher) {
-        let mut lexer = AsciiLexer::new();
         let file = File::open("./examples/80_char_lines.src").unwrap();
-        let mut reader = BufReader::with_capacity(READER_CAPACITY, &file);
+        let mut lexer = AsciiLexer::new();
+        let mut reader = BufReader::with_capacity(READER_CAPACITY, file);
         
         b.iter(|| {
             reader.rewind().unwrap();
@@ -57,9 +58,9 @@ mod tests {
     
     #[bench]
     fn bench_token_get_string(b: &mut Bencher) {
-        let mut lexer = AsciiLexer::new();
         let file = File::open("./examples/long_identifier.src").unwrap();
-        let mut reader = BufReader::with_capacity(READER_CAPACITY, &file);
+        let mut lexer = AsciiLexer::new();
+        let mut reader = BufReader::with_capacity(READER_CAPACITY, file);
 
         let tokens = black_box(lexer.tokenize_from_reader(&mut reader));
         let last = tokens.last().unwrap();

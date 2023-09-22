@@ -8,7 +8,7 @@ use llvm_compiler::{lexer::{AsciiLexer, Lexer}, parse::parser::Parser, token::To
 
 fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("./examples/80_char_lines.src").unwrap();
-    let mut reader = BufReader::with_capacity(READER_CAPACITY, &file);
+    let mut reader = BufReader::with_capacity(READER_CAPACITY, file);
 
     let tokens = AsciiLexer::new().tokenize_from_reader(&mut reader);
 

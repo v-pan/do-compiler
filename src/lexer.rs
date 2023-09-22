@@ -1,4 +1,4 @@
-use std::{io::{BufReader, BufRead}, fs::File};
+use std::{io::{BufReader, BufRead, Read}, fs::File};
 
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -79,10 +79,11 @@ impl Lexer for AsciiLexer {
     fn tokenize<T: std::io::Read>(&mut self, tokens: &mut Vec<Token>, reader: &mut BufReader<T>) {
         let mut total_bytes = 0;
         let mut buf = String::new();
-        
+
         loop {
             buf.clear();
-            let bytes_read = reader.read_line(&mut buf).unwrap();
+            let bytes_read = reader.read_to_string(&mut buf).unwrap();
+            tokens.reserve(bytes_read / 2); // Try to preallocate enough space for tokens. Chosen arbitrarily
 
             if bytes_read == 0 {
                 break;
@@ -93,10 +94,9 @@ impl Lexer for AsciiLexer {
             // Split on boundary characters, push the resulting tokens to vec
             buf.match_indices(|c| {
                 is_word_boundary(c)
-                // WORD_BOUNDARIES.binary_search(&c).is_ok()
-            }).for_each(|(idx_in_line, sep)| {
-                if idx_in_line != last_idx {
-                    let word = unsafe { buf.get_unchecked(last_idx..idx_in_line) };
+            }).for_each(|(idx_in_buf, sep)| {
+                if idx_in_buf != last_idx {
+                    let word = unsafe { buf.get_unchecked(last_idx..idx_in_buf) };
 
                     let idx = (last_idx + total_bytes).try_into().unwrap();
                     let word_token = Token::new(idx, word);
@@ -104,10 +104,10 @@ impl Lexer for AsciiLexer {
                     tokens.push(word_token);
                 }
 
-                let idx = (idx_in_line + total_bytes).try_into().unwrap();
+                let idx = (idx_in_buf + total_bytes).try_into().unwrap();
                 let sep_token = Token::new(idx, sep);
 
-                last_idx = (idx_in_line + sep.len()).try_into().unwrap();
+                last_idx = idx_in_buf + 1;
 
                 tokens.push(sep_token);
             });
@@ -120,7 +120,7 @@ impl Lexer for AsciiLexer {
 pub trait Lexer {
     fn tokenize<T: std::io::Read>(&mut self, tokens: &mut Vec<Token>, reader: &mut BufReader<T>);
 
-    fn tokenize_from_reader(&mut self, reader: &mut BufReader<&File>) -> Vec<Token> {
+    fn tokenize_from_reader(&mut self, reader: &mut BufReader<File>) -> Vec<Token> {
         let mut tokens = vec![];
     
         self.tokenize(&mut tokens, reader);
@@ -130,31 +130,5 @@ pub trait Lexer {
 }
 
 fn is_word_boundary(word: char) -> bool {
-    match word {
-        '\n' => true,
-        ' ' => true,
-        '"' => true,
-        '#' => true,
-        '%' => true,
-        '&' => true,
-        '\'' => true,
-        '(' => true,
-        ')' => true,
-        '*' => true,
-        '+' => true,
-        ',' => true,
-        '-' => true,
-        '.' => true,
-        '/' => true,
-        ':' => true,
-        ';' => true,
-        '<' => true,
-        '=' => true,
-        '>' => true,
-        '?' => true,
-        '`' => true,
-        '{' => true,
-        '}' => true,
-        _ => false,
-    }
+    matches!( word,'\n' | ' ' | '"' | '#' | '%' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '`' | '{' | '}')
 }
