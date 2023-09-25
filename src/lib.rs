@@ -26,8 +26,7 @@ mod tests {
         
         b.iter(|| {
             reader.rewind().unwrap();
-            let tokens = black_box(lexer.tokenize_from_reader(&mut reader));
-            tokens
+            black_box(lexer.tokenize_from_reader(&mut reader));
         });
     }
 
@@ -51,8 +50,7 @@ mod tests {
         
         b.iter(|| {
             reader.rewind().unwrap();
-            let tokens = black_box(lexer.tokenize_from_reader(&mut reader));
-            tokens
+            black_box(lexer.tokenize_from_reader(&mut reader));
         });
     }
     
