@@ -4,3 +4,4 @@ perf.data
 perf.data.old
 script.perf
 token_macro.log
+dhat.out.*
