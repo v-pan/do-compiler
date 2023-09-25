@@ -2,7 +2,7 @@ use std::{fs::File, io::Write};
 
 use proc_macro::TokenStream;
 use proc_macro2::{TokenTree::Ident, TokenTree::Literal};
-use quote::{quote, format_ident};
+use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Data, Meta, Expr, Lit};
 
 #[proc_macro_derive(TokenTypeDef, attributes(word, pair, operator))]
