@@ -1,4 +1,4 @@
-use std::{fs::File, io::Write};
+// use std::{fs::File, io::Write};
 
 use proc_macro::TokenStream;
 use proc_macro2::{TokenTree::Ident, TokenTree::Literal};
@@ -9,7 +9,7 @@ use syn::{parse_macro_input, DeriveInput, Data, Meta, Expr, Lit};
 pub fn token_derive(_tokens: TokenStream) -> TokenStream {
     let tokens = _tokens.clone();
     let input = parse_macro_input!(tokens as DeriveInput);
-    let mut log = File::create("token_macro.log").unwrap();
+    // let mut log = File::create("token_macro.log").unwrap();
 
     // log.write(format!("{:#?}\n", input).as_bytes()).unwrap();
 
