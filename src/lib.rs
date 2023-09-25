@@ -15,7 +15,14 @@ mod tests {
 
     use test::{Bencher, black_box};
 
-    use crate::{lexer::{AsciiLexer, Lexer}, READER_CAPACITY};
+    use crate::{lexer::{AsciiLexer, Lexer}, READER_CAPACITY, token::Token};
+
+    #[bench]
+    fn bench_create_tokens(b: &mut Bencher) {
+        b.iter(|| {
+            (0..100000).for_each(|_| { black_box(Token::new(0, "test")); });
+        });
+    }
 
     #[bench]
     fn bench_ascii_tokenize(b: &mut Bencher) {

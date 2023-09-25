@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("{}", tokens.len());
 
-    // println!("{:?}", &tokens);
+    println!("{:?}", &tokens);
     // let token = &tokens[1];
     // println!("Last: {token:?}, get_string: {}", token.get_string(&tokens, &mut reader));
 

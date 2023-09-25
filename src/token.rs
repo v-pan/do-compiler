@@ -4,12 +4,12 @@ use token_macro::TokenTypeDef;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Token {
-    pub loc: u32,
+    pub loc: usize,
     pub ty: TokenType
 }
 
 impl Token {
-    pub fn new(loc: u32, word: &str) -> Self {
+    pub fn new(loc: usize, word: &str) -> Self {
         let token_type = TokenType::from(word);
         Token { loc, ty: token_type }
     }

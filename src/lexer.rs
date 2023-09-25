@@ -1,4 +1,4 @@
-use std::{io::{BufReader, Read}, fs::File};
+use std::{io::{BufReader, Read}, fs::File, str::from_utf8_unchecked};
 use crate::token::Token;
 
 pub struct AsciiLexer {}
@@ -17,34 +17,29 @@ impl Lexer for AsciiLexer {
         loop {
             buf.clear();
             let bytes_read = reader.read_to_string(&mut buf).unwrap();
-            tokens.reserve(bytes_read / 2); // Try to preallocate enough space for tokens. Chosen arbitrarily
 
-            if bytes_read == 0 {
-                break;
-            }
+            if bytes_read == 0 { break; }
+
+            tokens.reserve(bytes_read / 2); // Try to preallocate enough space for tokens. Chosen arbitrarily
 
             let mut last_idx = 0;
 
-            // Split on boundary characters, push the resulting tokens to vec
-            buf.match_indices(|c| {
-                is_word_boundary(c)
-            }).for_each(|(idx_in_buf, sep)| {
-                if idx_in_buf != last_idx {
-                    let word = unsafe { buf.get_unchecked(last_idx..idx_in_buf) };
+            for (idx, byte) in buf.as_bytes().into_iter().enumerate() {
+                let slice = &[*byte];
+                let c = unsafe { from_utf8_unchecked(slice) };
+                if is_word_boundary(unsafe { char::from_u32_unchecked((*byte).into()) }) {
+                    if last_idx != idx {
+                        let word = unsafe { buf.get_unchecked(last_idx..idx) };
+                        let word_token = Token::new(idx + total_bytes + bytes_read, word);
 
-                    let idx = (last_idx + total_bytes).try_into().unwrap();
-                    let word_token = Token::new(idx, word);
+                        tokens.push(word_token);
+                    }
 
-                    tokens.push(word_token);
+                    let sep_token = Token::new(idx + total_bytes + bytes_read, c );
+                    last_idx = idx + 1;
+                    tokens.push(sep_token);
                 }
-
-                let idx = (idx_in_buf + total_bytes).try_into().unwrap();
-                let sep_token = Token::new(idx, sep);
-
-                last_idx = idx_in_buf + 1;
-
-                tokens.push(sep_token);
-            });
+            }
 
             total_bytes += bytes_read;
         }
