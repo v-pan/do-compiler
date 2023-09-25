@@ -11,7 +11,7 @@ pub fn token_derive(_tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
     let mut log = File::create("token_macro.log").unwrap();
 
-    log.write(format!("{:#?}\n", input).as_bytes()).unwrap();
+    // log.write(format!("{:#?}\n", input).as_bytes()).unwrap();
 
     let mut idents: Vec<proc_macro2::TokenStream> = vec![];
     let mut words: Vec<proc_macro2::TokenStream> = vec![];
