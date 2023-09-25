@@ -1,13 +1,13 @@
-use std::{io::{BufReader, BufRead, Read}, fs::File};
+use std::{io::{BufReader, Read}, fs::File};
 
-use unicode_segmentation::UnicodeSegmentation;
+// use unicode_segmentation::UnicodeSegmentation;
 
 use crate::token::Token;
 
 // Make sure this list is sorted for binary search.
 // Can be done by calling sort() in another file.
 // Benchmarks suggest this is faster than using a HashSet.
-const WORD_BOUNDARIES: [char; 24] = ['\n', ' ', '"', '#', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '`', '{', '}'];
+// const WORD_BOUNDARIES: [char; 24] = ['\n', ' ', '"', '#', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '`', '{', '}'];
 
 // pub struct UnicodeLexer {}
 

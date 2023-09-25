@@ -10,42 +10,8 @@ pub struct Token {
 
 impl Token {
     pub fn new(loc: u32, word: &str) -> Self {
-        let token = match word {
-            // Keywords
-            "fun" => Some(Token { loc, ty: TokenType::FunctionDecl }),
-            "if" => Some(Token { loc, ty: TokenType::If }),
-            // Operators
-            "+" => Some(Token { loc, ty: TokenType::Plus }),
-            "-" => Some(Token { loc, ty: TokenType::Minus }),
-            "*" => Some(Token { loc, ty: TokenType::Star }),
-            "/" => Some(Token { loc, ty: TokenType::Slash }),
-
-            // Seperators 
-            ":" => Some(Token { loc, ty: TokenType::Colon }),
-            "," => Some(Token { loc, ty: TokenType::Comma }),
-            ";" => Some(Token { loc, ty: TokenType::SemiColon }),
-            // Quotes
-            "\"" => Some(Token { loc, ty: TokenType::DoubleQuote }),
-            "\'" => Some(Token { loc, ty: TokenType::SingleQuote }),
-            "`" => Some(Token { loc, ty: TokenType::Backtick }),
-
-            // Parens
-            "(" => Some(Token { loc, ty: TokenType::OpenParen }),
-            ")" => Some(Token { loc, ty: TokenType::CloseParen }),
-            "<" => Some(Token { loc, ty: TokenType::OpenAngle }),
-            ">" => Some(Token { loc, ty: TokenType::CloseAngle }),
-            "{" => Some(Token { loc, ty: TokenType::OpenCurly }),
-            "}" => Some(Token { loc, ty: TokenType::CloseCurly }),
-
-            // Whitespace
-            " " => Some(Token { loc, ty: TokenType::Space }),
-            "\n" => Some(Token { loc, ty: TokenType::Newline }),
-            "\r\n" => Some(Token { loc, ty: TokenType::Newline }),
-
-            _ => None
-        };
-
-        token.unwrap_or(Token { loc, ty: TokenType::Unknown } )
+        let token_type = TokenType::from(word);
+        Token { loc, ty: token_type }
     }
 
     pub fn get_string(&self, tokens: &[Token], reader: &mut BufReader<File>) -> String {
@@ -70,141 +36,60 @@ impl Token {
             String::from_utf8(buf).unwrap()
         }
     }
-
-    // pub fn get_string_packed(&self, tokens: &Vec<[u8;5]>, reader: &mut BufReader<&File>) -> String {
-    //     let idx = tokens.binary_search(&self.pack().expect("Could not pack self")).expect("Did not find token");
-    //     let pos = SeekFrom::Start(self.loc.try_into().unwrap());
-
-    //     let next = tokens.get(idx+1);
-    //     reader.seek(pos).expect("Failed to seek to token start");
-
-    //     if let Some(token) = next {
-    //         let len = Token::unpack_from_slice(token).unwrap().loc.checked_sub(self.loc).expect("Overflow occurred while getting token length");
-    //         let mut buf = vec![0_u8; len.try_into().unwrap()];
-
-    //         reader.read_exact(&mut buf).unwrap();
-
-    //         // println!("Byte len: {len}, vec len: {}, buf: {:?}", buf.len(), buf);
-
-    //         String::from_utf8(buf).unwrap()
-    //     } else {
-    //         let mut buf = vec![];
-    //         reader.read_to_end(&mut buf).unwrap();
-    //         String::from_utf8(buf).unwrap()
-    //     }
-    // }
-
-    // pub fn try_keyword(loc: u32, word: &str) -> Option<Token> {
-    //     match word {
-            
-    //         _ => None
-    //     }
-    // }
-    // pub fn try_keyword_packed(loc: u32, word: &str) -> Result<[u8; 5], TokenizationError> {
-    //     Ok(Token::try_keyword(loc, word).ok_or(TokenizationError::NoMatch)?.pack()?)
-    // }
-
-    // pub fn try_paren(loc: u32, word: &str) -> Option<Token> {
-    //     match word {
-            
-    //     }
-    // }
-    // pub fn try_paren_packed(loc: u32, word: &str) -> Result<[u8; 5], TokenizationError> {
-    //     Ok(Token::try_paren(loc, word).ok_or(TokenizationError::NoMatch)?.pack()?)
-    // }
-
-    // pub fn try_operator(loc: u32, word: &str) -> Option<Token> {
-    //     match word {
-            
-    //         _ => None
-    //     }
-    // }
-    // pub fn try_operator_packed(loc: u32, word: &str) -> Result<[u8; 5], TokenizationError> {
-    //     Ok(Token::try_operator(loc, word).ok_or(TokenizationError::NoMatch)?.pack()?)
-    // }
-
-    // pub fn try_seperator(loc: u32, word: &str) -> Option<Token> {
-    //     match word {
-            
-    //         _ => None
-    //     }
-    // }
-    // pub fn try_seperator_packed(loc: u32, word: &str) -> Result<[u8; 5], TokenizationError> {
-    //     Ok(Token::try_seperator(loc, word).ok_or(TokenizationError::NoMatch)?.pack()?)
-    // }
-
-    // pub fn try_quote(loc: u32, word: &str) -> Option<Token> {
-    //     match word {
-            
-    //     }
-    // }
-    // pub fn try_quote_packed(loc: u32, word: &str) -> Result<[u8; 5], TokenizationError> {
-    //     Ok(Token::try_quote(loc, word).ok_or(TokenizationError::NoMatch)?.pack()?)
-    // }
-
-    // pub fn try_whitespace(loc: u32, word: &str) -> Option<Token> {
-    //     match word {
-            
-    //         _ => None
-    //     }
-    // }
-    // pub fn try_whitespace_packed(loc: u32, word: &str) -> Result<[u8; 5], TokenizationError> {
-    //     Ok(Token::try_whitespace(loc, word).ok_or(TokenizationError::NoMatch)?.pack()?)
-    // }
 }
 
 #[derive(TokenTypeDef, Clone, Copy, Debug)]
 pub enum TokenType {
     // Keywords
-    #[info(word="fun")]
+    #[word="fun"]
     FunctionDecl,
-    #[info(word="if")]
+    #[word="if"]
     If,
 
     // Parentheses
-    #[info(word="(", group=CloseParen)]
+    #[word="("] #[pair(CloseParen)]
     OpenParen,
-    #[info(word=")", group=OpenParen)]
+    #[word=")"] #[pair(OpenParen)]
     CloseParen,
-    #[info(word="{", group=CloseCurly)]
+    #[word="{"] #[pair(CloseCurly)]
     OpenCurly,
-    #[info(word="}", group=OpenCurly)]
+    #[word="}"] #[pair(OpenCurly)]
     CloseCurly,
-    #[info(word="<", group=CloseAngle)]
+    #[word="<"] #[pair(CloseAngle)]
     OpenAngle, // The angle brackets are also technically operators, context depending
-    #[info(word=">", group=OpenAngle)]
+    #[word=">"] #[pair(OpenAngle)]
     CloseAngle,
 
     // Quotes
-    #[info(word=r#"""#, group=DoubleQuote)]
+    #[word=r#"""#] #[pair(DoubleQuote)]
     DoubleQuote,
-    #[info(word="'", group=SingleQuote)]
+    #[word="'"] #[pair(SingleQuote)]
     SingleQuote,
-    #[info(word="`", group=Backtick)]
+    #[word="`"] #[pair(Backtick)]
     Backtick,
 
     // Seperators
-    #[info(word=":")]
+    #[word=":"]
     Colon,
-    #[info(word=",")]
+    #[word=","]
     Comma,
-    #[info(word=";")]
+    #[word=";"]
     SemiColon,
 
     // Operators (excl. angle brackets, see above)
-    #[info(word="+")]
+    #[word="+"] #[operator(precedence=1)]
     Plus,
-    #[info(word="-")]
+    #[word="-"] #[operator(precedence=1)]
     Minus,
-    #[info(word="*")]
+    #[word="*"] #[operator(precedence=2)]
     Star,
-    #[info(word="/")]
+    #[word="/"] #[operator(precedence=2)]
     Slash,
 
     // Whitespace
-    #[info(word=" ")]
+    #[word=" "]
     Space,
-    #[info(word="\n")]
+    #[word="\n"]
     Newline,
 
     // Comments - Currently think comments aren't being split on, but will be tokenized as slashes and stars
@@ -292,46 +177,4 @@ impl TokenType {
             TokenType::StringLiteral => false,
         }
     }
-
-    // If the given `TokenType` is an operator, returns its precedence and associativity.
-    pub fn try_operator(&self) -> Option<(u8, Associativity)> {
-        match self {
-            // Keywords
-            TokenType::FunctionDecl => None,
-            TokenType::If => None,
-            // Parentheses
-            TokenType::OpenParen => None,
-            TokenType::OpenCurly => None,
-            TokenType::OpenAngle => None,
-            TokenType::CloseParen => None,
-            TokenType::CloseCurly => None,
-            TokenType::CloseAngle => None,
-            // Quotes
-            TokenType::DoubleQuote => None,
-            TokenType::SingleQuote => None,
-            TokenType::Backtick => None,
-            // Seperators
-            TokenType::Colon => None,
-            TokenType::Comma => None,
-            TokenType::SemiColon => None,
-            // Operators (excl. angle brackets, see above)
-            TokenType::Plus => Some((1, Associativity::Left)),
-            TokenType::Minus => Some((1, Associativity::Left)),
-            TokenType::Star => Some((2, Associativity::Left)),
-            TokenType::Slash => Some((2, Associativity::Left)),
-            // Whitespace
-            TokenType::Space => None,
-            TokenType::Newline => None,
-            // Unknown: Either an identifier or literal
-            TokenType::Unknown => Some((4, Associativity::Right)), // Assumed to be a function call, treated as a unary operator
-            TokenType::Identifier => None,
-            TokenType::Literal => None,
-            TokenType::StringLiteral => None,
-        }
-    }
-}
-
-pub enum Associativity {
-    Left,
-    Right
 }

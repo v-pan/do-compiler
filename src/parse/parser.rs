@@ -1,31 +1,32 @@
-use std::{io::BufReader, fs::File};
+// use std::{io::BufReader, fs::File};
 
 use crate::token::{Token, TokenType};
 
-use super::{node::ParseNode, error::{ParseError, UnexpectedToken}, info::identifier::IdentifierInfo};
+use super::{node::ParseNode, error::{ParseError, UnexpectedToken}};
 
 pub struct ParseInfo {
-    identifiers: Vec<IdentifierInfo>,
+    // identifiers: Vec<IdentifierInfo>,
 }
 impl Default for ParseInfo {
     fn default() -> Self {
         Self {
-            identifiers: vec![],
+            // identifiers: vec![],
         }
     }
 }
 
-pub struct Parser<'b> {
-    reader: &'b mut BufReader<&'b File>,
+pub struct Parser/*<'b>*/ {
+    // reader: &'b mut BufReader<&'b File>,
     parsed: Vec<ParseNode>,
-    context: ParseInfo,
+    // context: ParseInfo,
 }
-impl<'b> Parser<'b> {
-    pub fn new(reader: &'b mut BufReader<&'b File>, tokens: &Vec<Token>) -> Self {
+impl/*<'b>*/ Parser/*<'b>*/ {
+    // pub fn new(reader: &'b mut BufReader<&'b File>, tokens: &Vec<Token>) -> Self {
+    pub fn new(tokens: &Vec<Token>) -> Self {
         Self {
-            reader,
+            // reader,
             parsed: Vec::with_capacity(tokens.len()),
-            context: ParseInfo::default(),
+            // context: ParseInfo::default(),
         }
     }
 
@@ -104,13 +105,13 @@ impl<'b> Parser<'b> {
                     }
                     parsed.push(idx);
                 },
-                _ => if let Some((precedence, associativity)) = token.ty.try_operator() {
+                _ => if let Some(precedence) = token.ty.get_precedence() {
                     loop {
                         match stack.pop() {
                             Some(last_idx) => {
                                 let last_type = tokens[last_idx].ty;
 
-                                if let Some((last_precedence, _)) = last_type.try_operator() {
+                                if let Some(last_precedence) = last_type.get_precedence() {
                                     if last_precedence >= precedence {
                                         parsed.push(last_idx);
                                     } else {
@@ -132,7 +133,7 @@ impl<'b> Parser<'b> {
                         
                     }
                 } else {
-                    let token_type = tokens[idx].ty;
+                    let _token_type = tokens[idx].ty;
                     parsed.push(idx);
                 }
             }
