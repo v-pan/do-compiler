@@ -30,12 +30,12 @@ impl Lexer for AsciiLexer {
                 if is_word_boundary(unsafe { char::from_u32_unchecked((*byte).into()) }) {
                     if last_idx != idx {
                         let word = unsafe { buf.get_unchecked(last_idx..idx) };
-                        let word_token = Token::new(idx + total_bytes + bytes_read, word);
+                        let word_token = Token::new(idx + total_bytes, word);
 
                         tokens.push(word_token);
                     }
 
-                    let sep_token = Token::new(idx + total_bytes + bytes_read, c );
+                    let sep_token = Token::new(idx + total_bytes, c );
                     last_idx = idx + 1;
                     tokens.push(sep_token);
                 }
