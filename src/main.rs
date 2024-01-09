@@ -10,7 +10,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("./examples/example.src").unwrap();
     let mut reader = BufReader::with_capacity(READER_CAPACITY, file);
 
-    let tokens = AsciiLexer::new().tokenize_from_reader(&mut reader);
+    let mut lexer = AsciiLexer::default();
+    let tokens = lexer.tokenize_from_reader(&mut reader);
 
     println!("{}", tokens.len());
 
@@ -25,7 +26,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!();
     println!("Parsed:");
 
-    let parsed_tokens = Parser::parse(&tokens);
+    let mut parser = Parser::from(lexer);
+    let parsed_tokens = parser.parse(&tokens);
     parsed_tokens.iter().for_each(|token| { print_token(token, &mut reader); });
 
     // let parsed = match Parser::new(&mut reader, &tokens).parse(&tokens) {

@@ -1,20 +1,29 @@
 use std::io::{BufReader, Read};
-use crate::token::Token;
+use string_interner::{StringInterner, backend::{BucketBackend, StringBackend}};
 
-pub enum LexicalContext {
-    FunctionDecl,
-    DocumentRoot,
+use crate::token::{Token, TokenType};
+
+pub struct AsciiLexer<B: string_interner::backend::Backend> {
+    pub idents: StringInterner<B>
 }
 
-pub struct AsciiLexer {}
-
-impl AsciiLexer {
-    pub fn new() -> AsciiLexer {
-        AsciiLexer {}
+impl<B: string_interner::backend::Backend> AsciiLexer<B> {
+    pub fn new(idents: StringInterner<B>) -> AsciiLexer<B> {
+        AsciiLexer {
+            idents
+        }
     }
 }
 
-impl Lexer for AsciiLexer {
+impl Default for AsciiLexer<StringBackend> {
+    fn default() -> Self {
+        AsciiLexer {
+            idents: StringInterner::<StringBackend>::new()
+        }
+    }
+}
+
+impl<B: string_interner::backend::Backend> Lexer for AsciiLexer<B> {
     fn tokenize<T: std::io::Read>(&mut self, tokens: &mut Vec<Token>, reader: &mut BufReader<T>) {
         let mut total_bytes = 0;
         let mut buf = String::new();
@@ -44,11 +53,17 @@ impl Lexer for AsciiLexer {
                     // There might be tokens between us and the previous boundary 
                     if last_idx != idx {
                         // Get the str between both indices
-                        let word = unsafe { buf.get_unchecked(last_idx..idx) };
-                        let word_token = Token::new_word(last_idx + total_bytes, word);
+                        let word: &str = unsafe { buf.get_unchecked(last_idx..idx) };
 
+                        let word_token = Token::new_word(last_idx + total_bytes, word);
                         tokens.push(word_token);
+
+                        if let TokenType::Identifier = word_token.ty {
+                            self.idents.get_or_intern(word);
+                        }
                     }
+
+                    // Store the boundary token
                     let token = Token::new_char(idx + total_bytes, c);
                     tokens.push(token);
                     
@@ -73,13 +88,13 @@ pub trait Lexer {
     }
 }
 
-// fn is_word_boundary(word: char) -> bool {
-//     matches!( word,'\n' | ' ' | '"' | '#' | '%' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '`' | '{' | '}')
-// }
-
 fn is_word_boundary(word: char) -> bool {
-    matches!( word,'\n' | ' ' | '"' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '`' | '{' | '}')
+    matches!( word,'\n' | ' ' | '"' | '#' | '%' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '`' | '{' | '}')
 }
+
+// fn is_word_boundary(word: char) -> bool {
+//     matches!( word,'\n' | ' ' | '"' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '`' | '{' | '}')
+// }
 
 // fn is_token_boundary(word: char) -> bool {
 //     matches!(word, '"' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '`' | '{' | '}')
