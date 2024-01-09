@@ -1,4 +1,4 @@
-use std::{io::{BufReader, Read}, fs::File};
+use std::io::{BufReader, Read};
 use crate::token::Token;
 
 pub enum LexicalContext {
