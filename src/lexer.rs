@@ -24,7 +24,11 @@ impl Lexer for AsciiLexer {
             buf.clear();
 
             // Read in as much as we can at once
-            let bytes_read = reader.read_to_string(&mut buf).unwrap();
+            let bytes_read = reader.read_to_string(&mut buf).unwrap(); // TODO: There is some edge
+                                                                       // case behaviour here when
+                                                                       // a file is too long to
+                                                                       // store in memory. This is
+                                                                       // currently unhandled.
             if bytes_read == 0 { break; } // We finished tokenizing this reader
             tokens.reserve(bytes_read / 2); // Speculatively allocate space in the buffer for tokens. Chosen arbitrarily
             
