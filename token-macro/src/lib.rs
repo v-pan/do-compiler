@@ -5,7 +5,7 @@ use proc_macro2::{TokenTree::Ident, TokenTree::Literal};
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Data, Meta, Expr, Lit};
 
-#[proc_macro_derive(TokenTypeDef, attributes(word, pair, operator))]
+#[proc_macro_derive(TokenTypeDef, attributes(word, char, pair, operator))]
 pub fn token_derive(_tokens: TokenStream) -> TokenStream {
     let tokens = _tokens.clone();
     let input = parse_macro_input!(tokens as DeriveInput);
@@ -14,7 +14,12 @@ pub fn token_derive(_tokens: TokenStream) -> TokenStream {
     // log.write(format!("{:#?}\n", input).as_bytes()).unwrap();
 
     let mut idents: Vec<proc_macro2::TokenStream> = vec![];
+
+    let mut word_idents: Vec<proc_macro2::TokenStream> = vec![];
     let mut words: Vec<proc_macro2::TokenStream> = vec![];
+    let mut char_idents: Vec<proc_macro2::TokenStream> = vec![];
+    let mut chars: Vec<proc_macro2::TokenStream> = vec![];
+
     let mut pairs: Vec<proc_macro2::TokenStream> = vec![];
 
     let mut operator_idents: Vec<proc_macro2::TokenStream> = vec![];
@@ -36,7 +41,22 @@ pub fn token_derive(_tokens: TokenStream) -> TokenStream {
                                 if let Meta::NameValue(name_value) = attr.meta {
                                     if let Expr::Lit(value) = name_value.value {
                                         if let Lit::Str(string) = value.lit {
+                                            word_idents.push(quote! { #var_ident });
                                             words.push(quote! { #string });
+                                        }
+                                    }
+                                }
+                            },
+                            "char" => {
+                                if let Meta::NameValue(name_value) = attr.meta {
+                                    if let Expr::Lit(value) = name_value.value {
+                                        if let Lit::Char(lit_char) = value.lit {
+                                            char_idents.push(quote! { #var_ident });
+                                            chars.push(quote! { #lit_char });
+                                        } else if let Lit::Str(string) = value.lit {
+                                            char_idents.push(quote! { #var_ident });
+                                            let c = string.value().chars().next().unwrap();
+                                            chars.push(quote! { #c });
                                         }
                                     }
                                 }
@@ -85,7 +105,7 @@ pub fn token_derive(_tokens: TokenStream) -> TokenStream {
     // log.write(format!("{:#?}\n", words).as_bytes()).unwrap();
     // log.write(format!("{:#?}\n", pairs).as_bytes()).unwrap();
 
-    let match_arms = quote! { #(#words => Self::#idents),* };
+    let match_arms = quote! { #(#words => Self::#word_idents),* };
     // log.write(format!("{:#?}\n", match_arms.to_string()).as_bytes()).unwrap();
 
     let from_str = quote! {
@@ -93,7 +113,19 @@ pub fn token_derive(_tokens: TokenStream) -> TokenStream {
             fn from(value: &str) -> Self {
                 match value {
                     #match_arms,
-                    _ => Self::Unknown,
+                    _ => Self::Identifier,
+                }
+            }
+        }
+    };
+
+    let match_arms = quote! { #(#chars => Self::#char_idents),* };
+    let from_char = quote! {
+        impl core::convert::From<char> for #ident {
+            fn from(value: char) -> Self {
+                match value {
+                    #match_arms,
+                    _ => panic!("Tried parsing character, but no token matched {}", value),
                 }
             }
         }
@@ -125,6 +157,8 @@ pub fn token_derive(_tokens: TokenStream) -> TokenStream {
 
     let output = quote! {
         #from_str
+
+        #from_char
 
         impl #ident {
             pub #get_pair

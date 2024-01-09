@@ -9,7 +9,12 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn new(loc: usize, word: &str) -> Self {
+    pub fn new_word(loc: usize, word: &str) -> Self {
+        let token_type = TokenType::from(word);
+        Token { loc, ty: token_type }
+    }
+
+    pub fn new_char(loc: usize, word: char) -> Self {
         let token_type = TokenType::from(word);
         Token { loc, ty: token_type }
     }
@@ -41,55 +46,55 @@ impl Token {
 #[derive(TokenTypeDef, Clone, Copy, Debug)]
 pub enum TokenType {
     // Keywords
-    #[word="fun"]
+    #[word="fun"] #[pair(SemiColon)]
     FunctionDecl,
     #[word="if"]
     If,
 
     // Parentheses
-    #[word="("] #[pair(CloseParen)]
+    #[char='('] #[pair(CloseParen)]
     OpenParen,
-    #[word=")"] #[pair(OpenParen)]
+    #[char=')'] #[pair(OpenParen)]
     CloseParen,
-    #[word="{"] #[pair(CloseCurly)]
+    #[char='{'] #[pair(CloseCurly)]
     OpenCurly,
-    #[word="}"] #[pair(OpenCurly)]
+    #[char='}'] #[pair(OpenCurly)]
     CloseCurly,
-    #[word="<"] #[pair(CloseAngle)]
+    #[char='<'] #[pair(CloseAngle)]
     OpenAngle, // The angle brackets are also technically operators, context depending
-    #[word=">"] #[pair(OpenAngle)]
+    #[char='>'] #[pair(OpenAngle)]
     CloseAngle,
 
     // Quotes
-    #[word=r#"""#] #[pair(DoubleQuote)]
+    #[char=r#"""#] #[pair(DoubleQuote)]
     DoubleQuote,
-    #[word="'"] #[pair(SingleQuote)]
+    #[char='\''] #[pair(SingleQuote)]
     SingleQuote,
-    #[word="`"] #[pair(Backtick)]
+    #[char='`'] #[pair(Backtick)]
     Backtick,
 
     // Seperators
-    #[word=":"]
+    #[char=':']
     Colon,
-    #[word=","]
+    #[char=',']
     Comma,
-    #[word=";"]
+    #[char=';']
     SemiColon,
 
     // Operators (excl. angle brackets, see above)
-    #[word="+"] #[operator(precedence=1)]
+    #[char='+'] #[operator(precedence=1)]
     Plus,
-    #[word="-"] #[operator(precedence=1)]
+    #[char='-'] #[operator(precedence=1)]
     Minus,
-    #[word="*"] #[operator(precedence=2)]
+    #[char='*'] #[operator(precedence=2)]
     Star,
-    #[word="/"] #[operator(precedence=2)]
+    #[char='/'] #[operator(precedence=2)]
     Slash,
 
     // Whitespace
-    #[word=" "]
+    #[char=' ']
     Space,
-    #[word="\n"]
+    #[char='\n']
     Newline,
 
     // Comments - Currently think comments aren't being split on, but will be tokenized as slashes and stars
@@ -176,5 +181,9 @@ impl TokenType {
             TokenType::Literal => false,
             TokenType::StringLiteral => false,
         }
+    }
+
+    pub fn is_quote(&self) -> bool {
+        matches!(&self, TokenType::DoubleQuote | TokenType::SingleQuote)
     }
 }

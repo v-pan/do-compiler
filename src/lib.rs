@@ -20,7 +20,7 @@ mod tests {
     #[bench]
     fn bench_create_tokens(b: &mut Bencher) {
         b.iter(|| {
-            (0..100000).for_each(|_| { black_box(Token::new(0, "test")); });
+            (0..100000).for_each(|_| { black_box(Token::new_word(0, "test")); });
         });
     }
 
