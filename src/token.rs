@@ -9,6 +9,10 @@ pub struct Token {
 }
 
 impl Token {
+    pub fn new(loc: usize, ty: TokenType) -> Self {
+        Token { loc, ty }
+    }
+
     pub fn new_word(loc: usize, word: &str) -> Self {
         let token_type = TokenType::from(word);
         Token { loc, ty: token_type }

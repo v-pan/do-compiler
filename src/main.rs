@@ -4,7 +4,7 @@ use std::fs::File;
 use std::error::Error;
 use std::io::BufReader;
 
-use llvm_compiler::{lexer::{AsciiLexer, Lexer}, READER_CAPACITY, token::Token};
+use llvm_compiler::{lexer::{AsciiLexer, Lexer}, READER_CAPACITY, token::Token, parse::parser::Parser};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let file = File::open("./examples/example.src").unwrap();
@@ -21,7 +21,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let print_token = |token: &Token, reader: &mut BufReader<File>| { print!("{:?}", token); };
     tokens.iter().for_each(|token| { print_token(token, &mut reader); });
 
-    // println!();
+    println!();
+    println!();
+    println!("Parsed:");
+
+    let parsed_tokens = Parser::parse(&tokens);
+    parsed_tokens.iter().for_each(|token| { print_token(token, &mut reader); });
 
     // let parsed = match Parser::new(&mut reader, &tokens).parse(&tokens) {
     //     Ok(result) => result,
