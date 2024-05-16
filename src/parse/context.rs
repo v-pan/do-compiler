@@ -1,8 +1,10 @@
+#[derive(Debug)]
 pub enum ParseCtx {
     ModifierCtx(usize),
     FunctionCtx(FunctionCtx),
 }
 
+#[derive(Debug)]
 pub struct FunctionCtx {
     
 }
