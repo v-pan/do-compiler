@@ -1,7 +1,12 @@
-#[derive(Debug)]
-pub enum ParseCtx {
+use string_interner::backend::Backend;
+
+pub enum ParseCtx<B: string_interner::backend::Backend> {
     ModifierCtx(usize),
     FunctionCtx(FunctionCtx),
+    VariableCtx,
+    IdentifierCtx(<B as Backend>::Symbol),
+    EqualsCtx,
+    PlusCtx,
 }
 
 #[derive(Debug)]
@@ -10,7 +15,7 @@ pub struct FunctionCtx {
 }
 
 impl FunctionCtx {
-    pub fn new() -> ParseCtx {
+    pub fn new<B: string_interner::backend::Backend>() -> ParseCtx<B> {
         ParseCtx::FunctionCtx(FunctionCtx { })
     }
 }

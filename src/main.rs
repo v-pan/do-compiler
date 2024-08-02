@@ -1,4 +1,4 @@
-#![feature(iter_map_windows)]
+// #![feature(iter_map_windows)]
 
 use std::fs::File;
 use std::error::Error;
@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Parsed:");
 
     let mut parser = Parser::from(lexer);
-    let parsed_tokens = parser.parse(&tokens);
+    let parsed_tokens = parser.parse(&tokens, &mut reader);
     parsed_tokens.iter().for_each(|token| { print_token(token, &mut reader); });
 
     // let parsed = match Parser::new(&mut reader, &tokens).parse(&tokens) {

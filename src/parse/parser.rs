@@ -1,12 +1,14 @@
+use std::io::BufReader;
+
 use string_interner::StringInterner;
 
-use crate::{token::Token, lexer::AsciiLexer};
+use crate::{lexer::AsciiLexer, token::Token};
 
-use super::context::{ParseCtx, FunctionCtx};
+use super::context::{FunctionCtx, ParseCtx};
 use crate::token::TokenType;
 
 pub struct Parser<B: string_interner::backend::Backend> {
-    pub idents: StringInterner<B>
+    pub idents: StringInterner<B>,
 }
 
 impl<B: string_interner::backend::Backend> From<AsciiLexer<B>> for Parser<B> {
@@ -20,25 +22,126 @@ impl<B: string_interner::backend::Backend> Parser<B> {
         Parser { idents }
     }
 
-    pub fn parse(&mut self, tokens: &Vec<Token>) -> Vec<Token> {
-
-        let mut stack: Vec<ParseCtx> = vec![];
+    pub fn parse<T: std::io::Read + std::io::Seek>(
+        &mut self,
+        tokens: &Vec<Token>,
+        reader: &mut BufReader<T>,
+    ) -> Vec<Token> {
+        let mut stack: Vec<Token> = vec![];
         let mut parsed: Vec<Token> = Vec::with_capacity(tokens.capacity());
-        
-        for (idx, token) in tokens.into_iter().enumerate() {
+
+        for (idx, token) in tokens.iter().enumerate() {
+            let params = ParserParams {
+                idx,
+                tokens,
+                stack: &mut stack,
+                parsed: &mut parsed,
+            };
+
             match token.ty {
-                TokenType::FunctionDecl => self.handle_func(token, &mut parsed, &mut stack),
-                TokenType::Identifier => {
-                    self.handle_identifier(token, &mut parsed, &mut stack)
+                TokenType::VariableDecl => self.handle_variable_decl(params),
+                TokenType::Identifier => self.handle_identifier(params, reader),
+                TokenType::Equals => self.handle_equals(params),
+
+                TokenType::Space => {}
+                _ => {
+                    todo!("{:?}", &token.ty)
                 }
-                _ => {},
             }
+
+            println!("Parsed, {:?}", parsed);
         }
 
         parsed
     }
 
-    fn handle_func(&self, token: &Token, parsed: &mut Vec<Token>, stack: &mut Vec<ParseCtx>) {
+    fn handle_variable_decl(&self, params: ParserParams<'_, B>) {
+        let ParserParams {
+            idx,
+            tokens,
+            stack,
+            parsed,
+        } = params;
+
+        // Shift to identifier
+        stack.push(ParseCtx::VariableCtx);
+        parsed.push(tokens[idx]);
+    }
+
+    fn handle_identifier<T: std::io::Read + std::io::Seek>(
+        &mut self,
+        params: ParserParams<'_, B>,
+        reader: &mut BufReader<T>,
+    ) {
+        let ParserParams {
+            idx,
+            tokens,
+            stack,
+            parsed,
+        } = params;
+
+        let ctx = unsafe { stack.last().unwrap_unchecked() };
+
+        match ctx {
+            ParseCtx::VariableCtx => {
+                let token = tokens[idx];
+                let symbol = self.idents.get_or_intern(token.get_string(tokens, reader));
+
+                // Shift to assignment operator
+                stack.push(ParseCtx::IdentifierCtx(symbol));
+                parsed.push(tokens[idx]);
+            }
+            ParseCtx::PlusCtx => {
+                let token = tokens[idx];
+                let symbol = self.idents.get_or_intern(token.get_string(tokens, reader));
+
+                // Reduce into post-order
+                stack.pop();
+                stack.push(ParseCtx::IdentifierCtx(symbol));
+                parsed.push(tokens[idx]);
+            }
+            _ => {
+                todo!("Handle all ident contexts")
+            }
+        }
+    }
+
+    fn handle_equals(&self, params: ParserParams<'_, B>) {
+        let ParserParams {
+            idx,
+            tokens,
+            stack,
+            parsed,
+        } = params;
+
+        // Shift to expression
+        stack.push(ParseCtx::EqualsCtx);
+        parsed.push(tokens[idx]);
+    }
+
+    fn handle_plus(&self, params: ParserParams<'_, B>) {
+        let ParserParams {
+            idx,
+            tokens,
+            stack,
+            parsed,
+        } = params;
+
+        // Shift to expression
+        stack.push(ParseCtx::PlusCtx);
+        parsed.push(tokens[idx]);
+    }
+
+    fn handle_func(&self, params: ParserParams<'_, B>) {
+        let ParserParams {
+            idx,
+            tokens,
+            stack,
+            parsed,
+        } = params;
+
+        let token = tokens[idx];
+
         // There might have been modifiers before our declaration
         if let Some(ParseCtx::ModifierCtx(idx)) = stack.last() {
             let placeholder = parsed[*idx];
@@ -53,8 +156,11 @@ impl<B: string_interner::backend::Backend> Parser<B> {
         // Declare the function context
         stack.push(FunctionCtx::new());
     }
+}
 
-    fn handle_identifier(&mut self, token: &Token, parsed: &mut Vec<Token>, stack: &mut Vec<ParseCtx>) {
-        todo!("Handle identifier interning")
-    }
+struct ParserParams<'a, B: string_interner::backend::Backend> {
+    idx: usize,
+    tokens: &'a [Token],
+    stack: &'a mut Vec<ParseCtx<B>>,
+    parsed: &'a mut Vec<Token>,
 }

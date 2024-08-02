@@ -1,11 +1,14 @@
 // use crate::error::TokenizationError;
-use std::{io::{BufReader, SeekFrom, Read}, io::Seek, fs::File};
+use std::{
+    io::Seek,
+    io::{BufReader, Read, SeekFrom},
+};
 use token_macro::TokenTypeDef;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Token {
     pub loc: usize,
-    pub ty: TokenType
+    pub ty: TokenType,
 }
 
 impl Token {
@@ -15,24 +18,39 @@ impl Token {
 
     pub fn new_word(loc: usize, word: &str) -> Self {
         let token_type = TokenType::from(word);
-        Token { loc, ty: token_type }
+        Token {
+            loc,
+            ty: token_type,
+        }
     }
 
     pub fn new_char(loc: usize, word: char) -> Self {
         let token_type = TokenType::from(word);
-        Token { loc, ty: token_type }
+        Token {
+            loc,
+            ty: token_type,
+        }
     }
 
-    pub fn get_string(&self, tokens: &[Token], reader: &mut BufReader<File>) -> String {
-        let idx = tokens.binary_search_by(|other| { other.loc.cmp(&self.loc) }).expect("Did not find token");
+    pub fn get_string<T: std::io::Read + Seek>(
+        &self,
+        tokens: &[Token],
+        reader: &mut BufReader<T>,
+    ) -> String {
+        let idx = tokens
+            .binary_search_by(|other| other.loc.cmp(&self.loc))
+            .expect("Did not find token");
         let pos = SeekFrom::Start(self.loc.try_into().unwrap());
 
-        let next = tokens.get(idx+1);
+        let next = tokens.get(idx + 1);
         reader.seek(pos).expect("Failed to seek to token start");
 
         if let Some(token) = next {
-            let len = token.loc.checked_sub(self.loc).expect("Overflow occurred while getting token length");
-            let mut buf = vec![0_u8; len.try_into().unwrap()];
+            let len = token
+                .loc
+                .checked_sub(self.loc)
+                .expect("Overflow occurred while getting token length");
+            let mut buf = vec![0_u8; len];
 
             reader.read_exact(&mut buf).unwrap();
 
@@ -50,60 +68,82 @@ impl Token {
 #[derive(TokenTypeDef, Clone, Copy, Debug)]
 pub enum TokenType {
     // Keywords
-    #[word="fun"] #[pair(SemiColon)]
+    #[word = "fun"]
+    #[pair(SemiColon)]
     FunctionDecl,
-    #[word="if"]
+    #[word = "if"]
     If,
+    #[word = "val"]
+    #[pair(SemiColon)]
+    ValueDecl,
+    #[word = "var"]
+    #[pair(SemiColon)]
+    VariableDecl,
 
     // Parentheses
-    #[char='('] #[pair(CloseParen)]
+    #[char = '(']
+    #[pair(CloseParen)]
     OpenParen,
-    #[char=')'] #[pair(OpenParen)]
+    #[char = ')']
+    #[pair(OpenParen)]
     CloseParen,
-    #[char='{'] #[pair(CloseCurly)]
+    #[char = '{']
+    #[pair(CloseCurly)]
     OpenCurly,
-    #[char='}'] #[pair(OpenCurly)]
+    #[char = '}']
+    #[pair(OpenCurly)]
     CloseCurly,
-    #[char='<'] #[pair(CloseAngle)]
+    #[char = '<']
+    #[pair(CloseAngle)]
     OpenAngle, // The angle brackets are also technically operators, context depending
-    #[char='>'] #[pair(OpenAngle)]
+    #[char = '>']
+    #[pair(OpenAngle)]
     CloseAngle,
 
     // Quotes
-    #[char=r#"""#] #[pair(DoubleQuote)]
+    #[char = r#"""#]
+    #[pair(DoubleQuote)]
     DoubleQuote,
-    #[char='\''] #[pair(SingleQuote)]
+    #[char = '\'']
+    #[pair(SingleQuote)]
     SingleQuote,
-    #[char='`'] #[pair(Backtick)]
+    #[char = '`']
+    #[pair(Backtick)]
     Backtick,
 
     // Seperators
-    #[char=':']
+    #[char = '=']
+    Equals,
+    #[char = ':']
     Colon,
-    #[char=',']
+    #[char = ',']
     Comma,
-    #[char=';']
+    #[char = ';']
     SemiColon,
 
     // Operators (excl. angle brackets, see above)
-    #[char='+'] #[operator(precedence=1)]
+    #[char = '+']
+    #[operator(precedence = 1)]
     Plus,
-    #[char='-'] #[operator(precedence=1)]
+    #[char = '-']
+    #[operator(precedence = 1)]
     Minus,
-    #[char='*'] #[operator(precedence=2)]
+    #[char = '*']
+    #[operator(precedence = 2)]
     Star,
-    #[char='/'] #[operator(precedence=2)]
+    #[char = '/']
+    #[operator(precedence = 2)]
     Slash,
 
     // Whitespace
-    #[char=' ']
+    #[char = ' ']
     Space,
-    #[char='\n']
+    #[char = '\n']
     Newline,
 
     // Comments - Currently think comments aren't being split on, but will be tokenized as slashes and stars
     // LineComment,
-    // OpenMultilineComment, 
+    // OpenMultilineComment,
     // CloseMultilineComment,
 
     // Unknown: Either an identifier or literal
@@ -120,6 +160,8 @@ impl TokenType {
             // Keywords
             TokenType::FunctionDecl => true,
             TokenType::If => true,
+            TokenType::ValueDecl => true,
+            TokenType::VariableDecl => true,
             // Parentheses
             TokenType::OpenParen => true,
             TokenType::OpenCurly => true,
@@ -135,6 +177,7 @@ impl TokenType {
             TokenType::Colon => false,
             TokenType::Comma => false,
             TokenType::SemiColon => false,
+            TokenType::Equals => false,
             // Operators (excl. angle brackets, see above)
             TokenType::Plus => false,
             TokenType::Minus => false,
@@ -156,6 +199,8 @@ impl TokenType {
             // Keywords
             TokenType::FunctionDecl => false,
             TokenType::If => false,
+            TokenType::ValueDecl => false,
+            TokenType::VariableDecl => false,
             // Parentheses
             TokenType::OpenParen => false,
             TokenType::OpenCurly => false,
@@ -168,6 +213,7 @@ impl TokenType {
             TokenType::SingleQuote => true,
             TokenType::Backtick => true,
             // Seperators
+            TokenType::Equals => false,
             TokenType::Colon => false,
             TokenType::Comma => false,
             TokenType::SemiColon => false,
