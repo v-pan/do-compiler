@@ -2,13 +2,12 @@
 
 use std::fs::File;
 use std::io::BufReader;
-use std::{error::Error, io::Read};
+use std::io::Read;
 
 use llvm_compiler::parse::parser::Parser;
 use llvm_compiler::{lexer::AsciiLexer, token::Token, READER_CAPACITY};
-use string_interner::backend::Backend;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> miette::Result<()> {
     let file = File::open("./examples/infix.src").unwrap();
     let mut reader = BufReader::with_capacity(READER_CAPACITY, file);
 
@@ -34,7 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let parser = Parser::default();
 
-    let parsed = parser.parse(&tokens);
+    let parsed = parser.parse(&tokens)?;
 
     println!("{:?}", parsed);
 
