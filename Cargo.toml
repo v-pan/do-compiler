@@ -8,6 +8,7 @@ packed_struct = "0.10.1"
 unicode-segmentation = "1.10.1"
 token-macro = { path = "./token-macro" }
 string-interner = "0.14.0"
+miette = { version = "7.2.0", features = ["fancy"] }
 
 [profile.release]
 debug = 1
