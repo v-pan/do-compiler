@@ -3,7 +3,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::{TokenTree::Ident, TokenTree::Literal};
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Data, Meta, Expr, Lit};
+use syn::{parse_macro_input, Data, DeriveInput, Expr, Lit, Meta};
 
 #[proc_macro_derive(TokenTypeDef, attributes(word, char, pair, operator))]
 pub fn token_derive(_tokens: TokenStream) -> TokenStream {
@@ -27,78 +27,72 @@ pub fn token_derive(_tokens: TokenStream) -> TokenStream {
 
     let ident = input.ident;
 
-    match input.data {
-        Data::Enum(token_enum) => {
-            for variant in token_enum.variants {
-                let var_ident = variant.ident;
-                idents.push(quote! { #var_ident });
+    if let Data::Enum(token_enum) = input.data {
+        for variant in token_enum.variants {
+            let var_ident = variant.ident;
+            idents.push(quote! { #var_ident });
 
-                for attr in variant.attrs {
-                    let path = attr.meta.path();
-                    if let Some(ident) = path.get_ident() {
-                        match ident.to_string().as_str() {
-                            "word" => {
-                                if let Meta::NameValue(name_value) = attr.meta {
-                                    if let Expr::Lit(value) = name_value.value {
-                                        if let Lit::Str(string) = value.lit {
-                                            word_idents.push(quote! { #var_ident });
-                                            words.push(quote! { #string });
-                                        }
+            for attr in variant.attrs {
+                let path = attr.meta.path();
+                if let Some(ident) = path.get_ident() {
+                    match ident.to_string().as_str() {
+                        "word" => {
+                            if let Meta::NameValue(name_value) = attr.meta {
+                                if let Expr::Lit(value) = name_value.value {
+                                    if let Lit::Str(string) = value.lit {
+                                        word_idents.push(quote! { #var_ident });
+                                        words.push(quote! { #string });
                                     }
                                 }
-                            },
-                            "char" => {
-                                if let Meta::NameValue(name_value) = attr.meta {
-                                    if let Expr::Lit(value) = name_value.value {
-                                        if let Lit::Char(lit_char) = value.lit {
-                                            char_idents.push(quote! { #var_ident });
-                                            chars.push(quote! { #lit_char });
-                                        } else if let Lit::Str(string) = value.lit {
-                                            char_idents.push(quote! { #var_ident });
-                                            let c = string.value().chars().next().unwrap();
-                                            chars.push(quote! { #c });
-                                        }
-                                    }
-                                }
-                            },
-                            "pair" => {
-                                if let Meta::List(list) = attr.meta {
-                                    for token in list.tokens {
-                                        if let Ident(identifier) = token {
-                                            pairs.push(quote! { #identifier });
-                                        }
-                                    }
-                                }
-                            },
-                            "operator" => {
-                                if let Meta::List(list) = attr.meta {
-                                    let mut last_identifier = String::new();
-                                    for token in list.tokens {
-                                        match token {
-                                            Ident(identifier) => {
-                                                last_identifier = identifier.to_string();
-                                                operator_idents.push(quote! { #var_ident });
-                                            }
-                                            Literal(lit) => {
-                                                match last_identifier.as_str() {
-                                                    "precedence" => {
-                                                        operator_precedences.push(quote! { #lit });
-                                                    }
-                                                    _ => {}
-                                                }
-                                            }
-                                            _ => (),
-                                        }
-                                    }
-                                }
-                            },
-                            _ => {}
+                            }
                         }
+                        // "char" => {
+                        //     if let Meta::NameValue(name_value) = attr.meta {
+                        //         if let Expr::Lit(value) = name_value.value {
+                        //             if let Lit::Char(lit_char) = value.lit {
+                        //                 word_idents.push(quote! { #var_ident });
+                        //                 words.push(quote! { #lit_char });
+                        //             } else if let Lit::Str(string) = value.lit {
+                        //                 word_idents.push(quote! { #var_ident });
+                        //                 let c = string.value().chars().next().unwrap();
+                        //                 words.push(quote! { #c });
+                        //             }
+                        //         }
+                        //     }
+                        // }
+                        "pair" => {
+                            if let Meta::List(list) = attr.meta {
+                                for token in list.tokens {
+                                    if let Ident(identifier) = token {
+                                        pairs.push(quote! { #identifier });
+                                    }
+                                }
+                            }
+                        }
+                        "operator" => {
+                            if let Meta::List(list) = attr.meta {
+                                let mut last_identifier = String::new();
+                                for token in list.tokens {
+                                    match token {
+                                        Ident(identifier) => {
+                                            last_identifier = identifier.to_string();
+                                            operator_idents.push(quote! { #var_ident });
+                                        }
+                                        Literal(lit) => {
+                                            if let "precedence" = last_identifier.as_str() {
+                                                operator_precedences.push(quote! { #lit });
+                                            }
+                                        }
+                                        _ => (),
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
                     }
                 }
             }
         }
-        _ => {}
     }
 
     // log.write(format!("{:#?}\n", idents).as_bytes()).unwrap();
@@ -119,17 +113,17 @@ pub fn token_derive(_tokens: TokenStream) -> TokenStream {
         }
     };
 
-    let match_arms = quote! { #(#chars => Self::#char_idents),* };
-    let from_char = quote! {
-        impl core::convert::From<char> for #ident {
-            fn from(value: char) -> Self {
-                match value {
-                    #match_arms,
-                    _ => panic!("Tried parsing character, but no token matched {}", value),
-                }
-            }
-        }
-    };
+    // let match_arms = quote! { #(#chars => Self::#char_idents),* };
+    // let from_char = quote! {
+    //     impl core::convert::From<&char> for #ident {
+    //         fn from(value: &char) -> Self {
+    //             match *value {
+    //                 #match_arms,
+    //                 _ => panic!("Tried parsing character, but no token matched {}", value),
+    //             }
+    //         }
+    //     }
+    // };
 
     let match_arms = quote! { #(Self::#pairs => Some(Self::#idents)),* };
     let get_pair = quote! {
@@ -157,8 +151,6 @@ pub fn token_derive(_tokens: TokenStream) -> TokenStream {
 
     let output = quote! {
         #from_str
-
-        #from_char
 
         impl #ident {
             pub #get_pair
