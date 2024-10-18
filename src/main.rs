@@ -1,42 +1,42 @@
 // #![feature(iter_map_windows)]
 
 use std::fs::File;
-use std::error::Error;
 use std::io::BufReader;
+use std::{error::Error, io::Read};
 
-use llvm_compiler::{lexer::{AsciiLexer, Lexer}, READER_CAPACITY, token::Token, parse::parser::Parser};
+use llvm_compiler::parse::parser::Parser;
+use llvm_compiler::{lexer::AsciiLexer, token::Token, READER_CAPACITY};
+use string_interner::backend::Backend;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let file = File::open("./examples/example.src").unwrap();
+    let file = File::open("./examples/infix.src").unwrap();
     let mut reader = BufReader::with_capacity(READER_CAPACITY, file);
 
-    let mut lexer = AsciiLexer::default();
-    let tokens = lexer.tokenize_from_reader(&mut reader);
+    let mut lexer = AsciiLexer::new();
+    let mut buf = String::new();
+
+    // Read in as much as we can at once
+    let bytes_read = reader.read_to_string(&mut buf).unwrap(); // TODO: There is some edge
+                                                               // case behaviour here when
+                                                               // a file is too long to
+                                                               // store in memory. This is
+                                                               // currently unhandled.
+
+    let tokens: Vec<Token<'_>> = lexer.tokenize(&mut buf);
+
+    for token in tokens.iter() {
+        print!("{:?}", token);
+    }
 
     println!("{}", tokens.len());
 
-    // println!("{:?}", &tokens);
-    // let token = &tokens[1];
-    // println!("Last: {token:?}, get_string: {}", token.get_string(&tokens, &mut reader));
-
-    let print_token = |token: &Token, reader: &mut BufReader<File>| { print!("{:?}", token); };
-    tokens.iter().for_each(|token| { print_token(token, &mut reader); });
-
     println!();
-    println!();
-    println!("Parsed:");
 
-    let mut parser = Parser::from(lexer);
-    let parsed_tokens = parser.parse(&tokens, &mut reader);
-    parsed_tokens.iter().for_each(|token| { print_token(token, &mut reader); });
+    let parser = Parser::default();
 
-    // let parsed = match Parser::new(&mut reader, &tokens).parse(&tokens) {
-    //     Ok(result) => result,
-    //     Err(parse_err) => { panic!("{parse_err}") }
-    // };
+    let parsed = parser.parse(&tokens);
 
-    // let mut reader = BufReader::with_capacity(READER_CAPACITY, &file);
-    // parsed.iter().map(|idx| &tokens[*idx]).for_each(|token| { print_token(token, &mut reader) });
+    println!("{:?}", parsed);
 
     Ok(())
 }
