@@ -1,95 +1,144 @@
 use std::io::{BufReader, Read};
-use string_interner::{StringInterner, backend::{BucketBackend, StringBackend}};
+use string_interner::{
+    backend::{Backend, StringBackend},
+    StringInterner,
+};
 
-use crate::token::{Token, TokenType};
+use crate::token::Token;
 
-pub struct AsciiLexer<B: string_interner::backend::Backend> {
-    pub idents: StringInterner<B>
-}
+pub struct AsciiLexer;
 
-impl<B: string_interner::backend::Backend> AsciiLexer<B> {
-    pub fn new(idents: StringInterner<B>) -> AsciiLexer<B> {
-        AsciiLexer {
-            idents
-        }
+// pub struct AsciiLexer<B: string_interner::backend::Backend> {
+//     pub idents: StringInterner<B>,
+// }
+//
+// impl<B: string_interner::backend::Backend> AsciiLexer<B> {
+//     pub fn new(idents: StringInterner<B>) -> AsciiLexer<B> {
+//         AsciiLexer { idents }
+//     }
+// }
+//
+// impl Default for AsciiLexer<StringBackend> {
+//     fn default() -> Self {
+//         AsciiLexer {
+//             idents: StringInterner::<StringBackend>::new(),
+//         }
+//     }
+// }
+
+impl<'a> AsciiLexer {
+    pub fn new() -> Self {
+        AsciiLexer
     }
-}
 
-impl Default for AsciiLexer<StringBackend> {
-    fn default() -> Self {
-        AsciiLexer {
-            idents: StringInterner::<StringBackend>::new()
-        }
-    }
-}
+    pub fn tokenize(&mut self, buf: &'a mut String) -> Vec<Token<'a>> {
+        let mut tokens = Vec::new();
 
-impl<B: string_interner::backend::Backend> Lexer for AsciiLexer<B> {
-    fn tokenize<T: std::io::Read>(&mut self, tokens: &mut Vec<Token>, reader: &mut BufReader<T>) {
-        let mut total_bytes = 0;
-        let mut buf = String::new();
+        let mut last_idx = 0;
 
-        loop {
-            // Clear buffer from last iteration
-            buf.clear();
+        for (idx, byte) in buf.as_bytes().iter().enumerate() {
+            // Convert to char unsafely to avoid slow validity checks
+            let c: char = unsafe { char::from_u32_unchecked((*byte).into()) };
 
-            // Read in as much as we can at once
-            let bytes_read = reader.read_to_string(&mut buf).unwrap(); // TODO: There is some edge
-                                                                       // case behaviour here when
-                                                                       // a file is too long to
-                                                                       // store in memory. This is
-                                                                       // currently unhandled.
-            if bytes_read == 0 { break; } // We finished tokenizing this reader
-            tokens.reserve(bytes_read / 2); // Speculatively allocate space in the buffer for tokens. Chosen arbitrarily
-            
-            let mut last_idx = 0;
-            
-            // Read the file 8 bits at a time
-            for (idx, byte) in buf.as_bytes().into_iter().enumerate() {
-                // Convert to char unsafely to avoid slow validity checks
-                let c: char = unsafe { char::from_u32_unchecked((*byte).into()) };
+            if is_word_boundary(c) {
+                // There might be tokens between us and the previous boundary
+                if last_idx != idx {
+                    // Get the str between both indices
+                    let word: &str = unsafe { buf.get_unchecked(last_idx..idx) };
 
-                // Read the file until the next boundary 
-                if is_word_boundary(c) {
-                    // There might be tokens between us and the previous boundary 
-                    if last_idx != idx {
-                        // Get the str between both indices
-                        let word: &str = unsafe { buf.get_unchecked(last_idx..idx) };
+                    let word_token = Token::from(last_idx, word);
 
-                        let word_token = Token::new_word(last_idx + total_bytes, word);
-                        tokens.push(word_token);
-
-                        if let TokenType::Identifier = word_token.ty {
-                            self.idents.get_or_intern(word);
-                        }
-                    }
-
-                    // Store the boundary token
-                    let token = Token::new_char(idx + total_bytes, c);
-                    tokens.push(token);
-                    
-                    last_idx = idx+1;
+                    tokens.push(word_token);
                 }
+
+                let word: &str = unsafe { buf.get_unchecked(idx..idx + 1) };
+
+                // Store the boundary token
+                let token = Token::from(idx, word);
+                tokens.push(token);
+
+                last_idx = idx + 1;
             }
-
-            total_bytes += bytes_read;
         }
-    }
-}
 
-pub trait Lexer {
-    fn tokenize<T: std::io::Read>(&mut self, tokens: &mut Vec<Token>, reader: &mut BufReader<T>);
+        // // Read the file 8 bits at a time
+        // for (idx, byte) in buf.as_bytes().into_iter().enumerate() {
+        //     // Convert to char unsafely to avoid slow validity checks
+        //     // let c: char = unsafe { char::from_u32_unchecked((*byte).into()) };
 
-    fn tokenize_from_reader<T: std::io::Read>(&mut self, reader: &mut BufReader<T>) -> Vec<Token> {
-        let mut tokens = vec![];
-    
-        self.tokenize(&mut tokens, reader);
-    
+        //     // Read the file until the next boundary
+        //     if is_word_boundary(c) {
+        //         // There might be tokens between us and the previous boundary
+        //         if last_idx != idx {
+        //             // Get the str between both indices
+        //             let word: &str = unsafe { buf.get_unchecked(last_idx..idx) };
+
+        //             let mut word_token = Token::new_word(last_idx + total_bytes, word);
+
+        //             if let TokenType::Identifier = word_token.ty {
+        //                 let symbol = self.idents.get_or_intern(word);
+        //                 word_token.symbol = Some(symbol);
+        //             }
+
+        //             tokens.push(word_token);
+        //         }
+
+        //         // Store the boundary token
+        //         let token = Token::new_word(idx + total_bytes, c);
+        //         tokens.push(token);
+
+        //         last_idx = idx + 1;
+        //     }
+        // }
+
         tokens
     }
 }
 
+impl Default for AsciiLexer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// pub trait Lexer<'a> {
+//     fn tokenize<T: std::io::Read>(&mut self, reader: &mut BufReader<T>) -> Vec<Token<'a>>;
+//
+//     fn tokenize_from_reader<T: std::io::Read>(
+//         &mut self,
+//         reader: &mut BufReader<T>,
+//     ) -> Vec<Token<'a>> {
+//         return self.tokenize(reader);
+//     }
+// }
+
 fn is_word_boundary(word: char) -> bool {
-    matches!( word,'\n' | ' ' | '"' | '#' | '%' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '`' | '{' | '}')
+    matches!(
+        word,
+        '\n' | ' '
+            | '"'
+            | '#'
+            | '%'
+            | '&'
+            | '\''
+            | '('
+            | ')'
+            | '*'
+            | '+'
+            | ','
+            | '-'
+            | '.'
+            | '/'
+            | ':'
+            | ';'
+            | '<'
+            | '='
+            | '>'
+            | '?'
+            | '`'
+            | '{'
+            | '}'
+    )
 }
 
 // fn is_word_boundary(word: char) -> bool {
