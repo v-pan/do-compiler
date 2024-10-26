@@ -1,1 +1,5 @@
-A + B;
+func name(arg1: Type1, arg2: Type2) -> ReturnType {
+  A + B + C;
+}
+
+
