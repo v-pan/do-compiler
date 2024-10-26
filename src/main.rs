@@ -8,6 +8,8 @@ use llvm_compiler::parse::parser::Parser;
 use llvm_compiler::{lexer::AsciiLexer, token::Token, READER_CAPACITY};
 
 fn main() -> miette::Result<()> {
+    pretty_env_logger::init();
+
     let file = File::open("./examples/infix.src").unwrap();
     let mut reader = BufReader::with_capacity(READER_CAPACITY, file);
 
