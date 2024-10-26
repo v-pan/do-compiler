@@ -4,7 +4,7 @@ use string_interner::{
     StringInterner,
 };
 
-use crate::token::Token;
+use crate::token::{Inner, Token};
 
 pub struct AsciiLexer;
 
@@ -34,6 +34,7 @@ impl<'a> AsciiLexer {
     pub fn tokenize(&mut self, buf: &'a mut String) -> Vec<Token<'a>> {
         let mut tokens = Vec::new();
 
+        let mut last_token = Token::Unknown(Inner { loc: 0, slice: "" });
         let mut last_idx = 0;
 
         for (idx, byte) in buf.as_bytes().iter().enumerate() {
@@ -55,7 +56,30 @@ impl<'a> AsciiLexer {
 
                 // Store the boundary token
                 let token = Token::from(idx, word);
-                tokens.push(token);
+
+                // Look behind to see if this is a two character boundary token
+                match token {
+                    Token::GreaterThan(_) => {
+                        if let Token::Minus(_) = last_token {
+                            tokens.pop();
+                            let token = Token::from(idx - 1, "->");
+
+                            last_token = token;
+                            tokens.push(token);
+                        }
+                    }
+                    Token::Equals(_) => {
+                        if let Token::Equals(_) = last_token {
+                            // TODO: Comparison operators
+                        }
+                        last_token = token;
+                        tokens.push(token);
+                    }
+                    _ => {
+                        last_token = token;
+                        tokens.push(token);
+                    }
+                }
 
                 last_idx = idx + 1;
             }

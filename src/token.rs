@@ -16,12 +16,31 @@ use token_macro::TokenTypeDef;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Token<'a> {
-    Identifier(Inner<'a>),
+    // Operators
     Plus(Inner<'a>),
+    Minus(Inner<'a>),
+
+    GreaterThan(Inner<'a>),
+    Equals(Inner<'a>),
+
+    Colon(Inner<'a>),
+    Comma(Inner<'a>),
+    Arrow(Inner<'a>),
+
+    // Brackets
+    FunctionDeclaration(Inner<'a>),
     SemiColon(Inner<'a>),
+
+    OpenBracket(Inner<'a>),
+    CloseBracket(Inner<'a>),
+    OpenCurly(Inner<'a>),
+    CloseCurly(Inner<'a>),
+
+    // Whitespace
     Space,
     Newline,
 
+    Identifier(Inner<'a>),
     Unknown(Inner<'a>),
 }
 
@@ -32,14 +51,48 @@ pub struct Inner<'a> {
 }
 
 impl<'a> Token<'a> {
-    pub fn from(loc: usize, value: &'a str) -> Self {
-        match value {
-            "+" => Token::Plus(Inner { loc, slice: value }),
-            ";" => Token::SemiColon(Inner { loc, slice: value }),
+    pub fn from(loc: usize, slice: &'a str) -> Self {
+        match slice {
+            // Operators
+            "+" => Token::Plus(Inner { loc, slice }),
+            "-" => Token::Minus(Inner { loc, slice }),
+
+            ">" => Token::GreaterThan(Inner { loc, slice }),
+            "=" => Token::Equals(Inner { loc, slice }),
+
+            ":" => Token::Colon(Inner { loc, slice }),
+            "," => Token::Comma(Inner { loc, slice }),
+            "->" => Token::Arrow(Inner { loc, slice }),
+
+            // Brackets
+            ";" => Token::SemiColon(Inner { loc, slice }),
+            "func" => Token::FunctionDeclaration(Inner { loc, slice }),
+
+            "(" => Token::OpenBracket(Inner { loc, slice }),
+            ")" => Token::CloseBracket(Inner { loc, slice }),
+            "{" => Token::OpenCurly(Inner { loc, slice }),
+            "}" => Token::CloseCurly(Inner { loc, slice }),
+
+            // Whitespace
             " " => Token::Space,
             "\n" => Token::Newline,
 
-            _ => Token::Identifier(Inner { loc, slice: value }),
+            _ => Token::Identifier(Inner { loc, slice }),
+        }
+    }
+
+    pub fn precedence(&self) -> (u8, u8) {
+        match self {
+            // Operators
+            Token::Equals(_) => (2, 1),
+
+            Token::Plus(_) => (4, 3),
+
+            Token::Colon(_) => (4, 3),
+            Token::Comma(_) => (2, 1),
+            Token::Arrow(_) => (2, 1),
+
+            _ => (0, 0),
         }
     }
 }
