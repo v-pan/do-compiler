@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
 
+use llvm_compiler::parse::parser::parse;
 use llvm_compiler::parse::parser::Parser;
 use llvm_compiler::{lexer::AsciiLexer, token::Token, READER_CAPACITY};
 
@@ -33,9 +34,9 @@ fn main() -> miette::Result<()> {
 
     println!();
 
-    let parser = Parser::default();
+    let mut parser = Parser::new(0, &tokens);
 
-    let parsed = parser.parse(&tokens)?;
+    let parsed = parse(&mut parser)?;
 
     println!("{:?}", parsed);
 
