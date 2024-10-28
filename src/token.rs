@@ -1,4 +1,6 @@
+use log::{error, trace, warn};
 // use crate::error::TokenizationError;
+use miette::bail;
 use std::{
     fmt::Debug,
     io::Seek,
@@ -6,6 +8,8 @@ use std::{
 };
 use string_interner::backend::Backend;
 use token_macro::TokenTypeDef;
+
+use crate::parse::parser::Parser;
 
 // #[derive(Clone, Copy)]
 // pub struct Token<'a> {
@@ -86,14 +90,92 @@ impl<'a> Token<'a> {
             // Operators
             Token::Equals(_) => (2, 1),
 
-            Token::Plus(_) => (4, 3),
+            Token::Plus(_) => (3, 4),
 
-            Token::Colon(_) => (4, 3),
+            Token::Colon(_) => (3, 4),
             Token::Comma(_) => (2, 1),
-            Token::Arrow(_) => (2, 1),
 
             _ => (0, 0),
         }
+    }
+
+    pub fn parse(&self, parser: &mut Parser<'a>) -> miette::Result<()> {
+        match &self {
+            Token::Plus(_)
+            | Token::Minus(_)
+            | Token::Equals(_)
+            | Token::GreaterThan(_)
+            | Token::Colon(_)
+            | Token::Comma(_)
+            | Token::Arrow(_) => {
+                trace!("Parsing operator {:?}", self);
+                let token = parser.next_token();
+
+                match token {
+                    Some(rhs) => {
+                        // Check if this is just an argument
+                        if let Token::Identifier(_) = rhs {
+                        } else {
+                            bail!("Expected identifier after {:?}", self);
+                        }
+                        trace!("Found identifier {:?}", rhs);
+
+                        let lhs = parser.pop();
+                        match lhs {
+                            Some(Token::Identifier(_)) => {
+                                parser.push(lhs.unwrap());
+                                parser.push(rhs);
+                                parser.push(*self);
+                            }
+                            Some(operator) => {
+                                trace!("LHS operator: {:?}, RHS argument: {:?}", operator, rhs);
+                                let (_, op_rhs_prec) = operator.precedence();
+
+                                if op_rhs_prec == 0 {
+                                    bail!(
+                                        "Expected operator as LHS argument to {:?}, found {:?}",
+                                        self,
+                                        operator
+                                    );
+                                }
+
+                                if op_rhs_prec < self.precedence().0 {
+                                    // self should go beneath operator in the parse tree
+                                    parser.push(rhs);
+                                    parser.push(*self);
+                                    parser.push(operator);
+                                } else {
+                                    // leave everything as is
+                                    parser.push(operator);
+                                    parser.push(rhs);
+                                    parser.push(*self);
+                                }
+                            }
+                            None => {
+                                bail!("Expected argument before binary operator {:?}", self);
+                            }
+                        }
+                    }
+                    None => {
+                        bail!("Expected token after operator {:?}", self);
+                    }
+                }
+            }
+            Token::FunctionDeclaration(_)
+            | Token::SemiColon(_)
+            | Token::OpenBracket(_)
+            | Token::CloseBracket(_)
+            | Token::OpenCurly(_)
+            | Token::CloseCurly(_) => {}
+            Token::Identifier(_) => {
+                trace!("Parsing identifier {:?}", self);
+                parser.push(*self);
+            }
+            Token::Newline | Token::Space => {}
+            Token::Unknown(_) => {}
+        }
+
+        Ok(())
     }
 }
 

@@ -20,7 +20,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn peek_token(&self) -> Option<Token<'a>> {
+    pub fn peek_token(&self) -> Option<Token<'a>> {
         let mut index = self.index;
 
         loop {
@@ -39,7 +39,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn next_token(&mut self) -> Option<Token<'a>> {
+    pub fn next_token(&mut self) -> Option<Token<'a>> {
         loop {
             if self.index >= self.tokens.len() - 1 {
                 return None;
@@ -75,6 +75,10 @@ impl<'a> Parser<'a> {
 
     pub fn pop(&mut self) -> Option<Token<'a>> {
         self.stack.pop()
+    }
+
+    pub fn last(&mut self) -> Option<&Token<'a>> {
+        self.stack.last()
     }
 }
 
@@ -202,76 +206,27 @@ fn binary_operator<'a>(parser: &mut Parser<'a>, operator: Token<'a>) {
 
 fn expression(parser: &mut Parser<'_>, precedence: u8) -> miette::Result<()> {
     loop {
-        let token = parser.peek_token();
-
-        if token.is_some() {
-            trace!("Found token {:?}", &token.unwrap());
-        }
+        let token = parser.next_token();
 
         match token {
-            // Arguments
-            Some(Token::Identifier(_)) => {
-                trace!("Token is identifier");
-
-                identifier(parser, token.unwrap());
-                parser.consume_token();
-
-                trace!("Stack: {:?}", &parser.stack);
-            }
-
-            // Operators
-            Some(Token::Plus(_))
-            | Some(Token::Comma(_))
-            | Some(Token::Colon(_))
-            | Some(Token::Arrow(_)) => {
-                trace!("Token is operator");
-
-                let operator = token.unwrap();
-                let (lhs_precedence, rhs_precedence) = operator.precedence();
-
-                trace!(
-                    "lhs_precedence: {}, rhs_precedence: {}, precedence: {}",
-                    lhs_precedence,
-                    rhs_precedence,
-                    precedence
-                );
-
-                if lhs_precedence < precedence {
-                    break;
-                }
-
-                parser.consume_token();
-
-                // Want to find the next operator with higher precedence
-                expression(parser, rhs_precedence)?;
-                binary_operator(parser, operator);
-            }
-
             // End of expression
-            Some(Token::SemiColon(_))
-            | Some(Token::CloseBracket(_))
-            | Some(Token::OpenCurly(_)) => {
+            Some(Token::SemiColon(_) | Token::OpenCurly(_) | Token::CloseBracket(_)) => {
                 break;
             }
-
-            None => {
-                bail!("Unexpected end of tokens. Did you forget to close the expression");
+            Some(token) => {
+                token.parse(parser)?;
             }
-            _ => {
-                let token = token.unwrap();
-                bail!(
-                    "Expected argument, operator, or end of expression. Found {:?}",
-                    &token
-                );
+            None => {
+                bail!("Unexpected end of expression after {:?}", parser.last());
             }
         }
     }
 
     trace!("Parsed expression, stack: {:?}", &parser.stack);
 
-    let terminator = parser.next_token().unwrap();
+    // let terminator = parser.next_token().unwrap();
 
-    parser.stack.push(terminator);
+    // parser.stack.push(terminator);
 
     Ok(())
 }
