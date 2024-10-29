@@ -1,5 +1,5 @@
-use log::{debug, trace};
-use miette::{bail, diagnostic, miette, Context, LabeledSpan, MietteDiagnostic, SourceSpan};
+use log::trace;
+use miette::{bail, miette, LabeledSpan};
 
 use crate::token::Token;
 
