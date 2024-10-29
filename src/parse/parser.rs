@@ -186,14 +186,6 @@ fn function_declaration(parser: &mut Parser<'_>) -> miette::Result<()> {
     Ok(())
 }
 
-fn identifier<'a>(parser: &mut Parser<'a>, ident: Token<'a>) {
-    parser.stack.push(ident);
-}
-
-fn binary_operator<'a>(parser: &mut Parser<'a>, operator: Token<'a>) {
-    parser.stack.push(operator);
-}
-
 fn expression(parser: &mut Parser<'_>, precedence: u8) -> miette::Result<()> {
     loop {
         let token = parser.next_token();
