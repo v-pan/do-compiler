@@ -1,15 +1,15 @@
-use miette::{Diagnostic, SourceSpan};
+use miette::{Diagnostic, LabeledSpan, SourceSpan};
 use thiserror::Error;
 
 #[derive(Error, Diagnostic, Debug)]
-#[error("Unexpected token {found}")]
 #[diagnostic()]
+#[error("Unexpected token {found:?}")]
 pub struct UnexpectedToken {
     pub found: String,
 
-    #[label = "unexpected token"]
-    pub unexpected_span: SourceSpan,
+    pub unexpected_span: LabeledSpan,
+}
 
-    #[help]
-    pub advice: Option<String>,
+impl UnexpectedToken {
+    fn expected(self) {}
 }

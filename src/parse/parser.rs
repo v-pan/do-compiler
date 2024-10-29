@@ -1,5 +1,5 @@
 use log::{debug, trace};
-use miette::{bail, miette, SourceSpan};
+use miette::{bail, diagnostic, miette, Context, LabeledSpan, MietteDiagnostic, SourceSpan};
 
 use crate::token::Token;
 
@@ -86,7 +86,7 @@ impl<'a> Parser<'a> {
     pub fn expect(
         &mut self,
         condition: impl FnOnce(&Token<'a>) -> bool,
-    ) -> miette::Result<Token<'a>> {
+    ) -> Result<Token<'a>, UnexpectedToken> {
         match self.next_token() {
             Some(token) if condition(&token) => Ok(token),
             Some(token) => {
@@ -95,12 +95,32 @@ impl<'a> Parser<'a> {
 
                 Err(UnexpectedToken {
                     found: token.as_str().to_owned(),
-                    unexpected_span: SourceSpan::new(start.into(), length),
-                    advice: None,
-                }
-                .into())
+                    unexpected_span: LabeledSpan::new(None, start, length),
+                })
             }
-            None => Err(miette!("Unexpected end of token stream")),
+            None => Ok(Token::from(0, "test")),
+        }
+    }
+
+    pub fn expect_with_msg(
+        &mut self,
+        condition: impl FnOnce(&Token<'a>) -> bool,
+        msg: impl FnOnce(&UnexpectedToken) -> String,
+    ) -> miette::Result<Token<'a>> {
+        let result = self.expect(condition);
+
+        match result {
+            Ok(token) => Ok(token),
+            Err(err) => {
+                let msg = msg(&err);
+                let span = err.unexpected_span.clone();
+                let description = err.to_string();
+
+                let labelled_span =
+                    LabeledSpan::new(Some(msg.to_string()), span.offset(), span.len());
+
+                Err(miette!(labels = vec![labelled_span], "{description}"))
+            }
         }
     }
 }
@@ -133,12 +153,25 @@ pub fn parse<'a>(parser: &mut Parser<'a>) -> miette::Result<Vec<Token<'a>>> {
 
 fn function_declaration(parser: &mut Parser<'_>) -> miette::Result<()> {
     trace!("Parsing function declaration");
-    parser.expect(|token| matches!(token, Token::FunctionDeclaration(_)))?;
+    parser.expect_with_msg(
+        |token| matches!(token, Token::FunctionDeclaration(_)),
+        |_| "Expected function declaration".into(),
+    )?;
 
-    let ident = parser.expect(|token| matches!(token, Token::Identifier(_)))?;
+    let ident = parser.expect_with_msg(
+        |token| matches!(token, Token::Identifier(_)),
+        |err| {
+            let found = err.found.clone();
+            format!("Expected identifier, found {found}")
+        },
+    )?;
+
     trace!("Found identifier {:?}", &ident);
 
-    let open_bracket = parser.expect(|token| matches!(token, Token::OpenBracket(_)))?;
+    let open_bracket = parser.expect_with_msg(
+        |token| matches!(token, Token::OpenBracket(_)),
+        |_| "Expected (".into(),
+    )?;
     parser.stack.push(open_bracket);
 
     // Parse parameters
