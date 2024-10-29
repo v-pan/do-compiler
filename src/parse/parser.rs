@@ -93,27 +93,6 @@ impl<'a> Parser<'a> {
     }
 }
 
-macro_rules! expect {
-    ($token:expr, $type:path) => {
-        match $token {
-            Some($type(inner)) => $type(inner),
-            None => {
-                bail!(
-                    "Expected token {:?}",
-                    $type(crate::token::Inner { loc: 0, slice: "" })
-                );
-            }
-            _ => {
-                bail!(
-                    "Expected token {:?}, found {:?}",
-                    $type(crate::token::Inner { loc: 0, slice: "" }),
-                    $token
-                );
-            }
-        }
-    };
-}
-
 pub fn parse<'a>(parser: &mut Parser<'a>) -> miette::Result<Vec<Token<'a>>> {
     loop {
         let token = parser.peek_token();
