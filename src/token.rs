@@ -41,8 +41,8 @@ pub enum Token<'a> {
     CloseCurly(Inner<'a>),
 
     // Whitespace
-    Space,
-    Newline,
+    Space(Inner<'a>),
+    Newline(Inner<'a>),
 
     Identifier(Inner<'a>),
     Unknown(Inner<'a>),
@@ -78,10 +78,54 @@ impl<'a> Token<'a> {
             "}" => Token::CloseCurly(Inner { loc, slice }),
 
             // Whitespace
-            " " => Token::Space,
-            "\n" => Token::Newline,
+            " " => Token::Space(Inner { loc, slice }),
+            "\n" => Token::Newline(Inner { loc, slice }),
 
             _ => Token::Identifier(Inner { loc, slice }),
+        }
+    }
+
+    pub fn loc(&self) -> usize {
+        match self {
+            Token::Plus(inner)
+            | Token::Minus(inner)
+            | Token::GreaterThan(inner)
+            | Token::Equals(inner)
+            | Token::Colon(inner)
+            | Token::Comma(inner)
+            | Token::Arrow(inner)
+            | Token::FunctionDeclaration(inner)
+            | Token::SemiColon(inner)
+            | Token::OpenBracket(inner)
+            | Token::CloseBracket(inner)
+            | Token::OpenCurly(inner)
+            | Token::CloseCurly(inner)
+            | Token::Space(inner)
+            | Token::Newline(inner)
+            | Token::Identifier(inner)
+            | Token::Unknown(inner) => inner.loc,
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Token::Plus(inner)
+            | Token::Minus(inner)
+            | Token::GreaterThan(inner)
+            | Token::Equals(inner)
+            | Token::Colon(inner)
+            | Token::Comma(inner)
+            | Token::Arrow(inner)
+            | Token::FunctionDeclaration(inner)
+            | Token::SemiColon(inner)
+            | Token::OpenBracket(inner)
+            | Token::CloseBracket(inner)
+            | Token::OpenCurly(inner)
+            | Token::CloseCurly(inner)
+            | Token::Space(inner)
+            | Token::Newline(inner)
+            | Token::Identifier(inner)
+            | Token::Unknown(inner) => inner.slice,
         }
     }
 
@@ -120,7 +164,7 @@ impl<'a> Token<'a> {
                 trace!("Parsing identifier {:?}", self);
                 parser.push(*self);
             }
-            Token::Newline | Token::Space => {}
+            Token::Newline(_) | Token::Space(_) => {}
             Token::Unknown(_) => {}
         }
 

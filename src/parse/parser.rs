@@ -1,7 +1,9 @@
 use log::{debug, trace};
-use miette::{bail, miette};
+use miette::{bail, miette, SourceSpan};
 
 use crate::token::Token;
+
+use super::error::UnexpectedToken;
 
 pub struct Parser<'a> {
     index: usize,
@@ -31,7 +33,7 @@ impl<'a> Parser<'a> {
             let next_token = self.tokens[index];
             index += 1;
 
-            if let Token::Space | Token::Newline = next_token {
+            if let Token::Space(_) | Token::Newline(_) = next_token {
                 continue;
             } else {
                 return Some(next_token);
@@ -48,7 +50,7 @@ impl<'a> Parser<'a> {
             let next_token = self.tokens[self.index];
             self.index += 1;
 
-            if let Token::Space | Token::Newline = next_token {
+            if let Token::Space(_) | Token::Newline(_) = next_token {
                 continue;
             } else {
                 return Some(next_token);
@@ -61,7 +63,7 @@ impl<'a> Parser<'a> {
             let next_token = self.tokens[self.index];
             self.index += 1;
 
-            if let Token::Space | Token::Newline = next_token {
+            if let Token::Space(_) | Token::Newline(_) = next_token {
                 continue;
             } else {
                 break;
@@ -87,7 +89,17 @@ impl<'a> Parser<'a> {
     ) -> miette::Result<Token<'a>> {
         match self.next_token() {
             Some(token) if condition(&token) => Ok(token),
-            Some(token) => Err(miette!("Unexpected token {:?}", token)),
+            Some(token) => {
+                let start = token.loc();
+                let length = token.as_str().len();
+
+                Err(UnexpectedToken {
+                    found: token.as_str().to_owned(),
+                    unexpected_span: SourceSpan::new(start.into(), length),
+                    advice: None,
+                }
+                .into())
+            }
             None => Err(miette!("Unexpected end of token stream")),
         }
     }

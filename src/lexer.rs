@@ -31,7 +31,7 @@ impl<'a> AsciiLexer {
         AsciiLexer
     }
 
-    pub fn tokenize(&mut self, buf: &'a mut String) -> Vec<Token<'a>> {
+    pub fn tokenize(&mut self, buf: &'a String) -> Vec<Token<'a>> {
         let mut tokens = Vec::new();
 
         let mut last_token = Token::Unknown(Inner { loc: 0, slice: "" });

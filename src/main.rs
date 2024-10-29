@@ -24,7 +24,7 @@ fn main() -> miette::Result<()> {
                                                                // store in memory. This is
                                                                // currently unhandled.
 
-    let tokens: Vec<Token<'_>> = lexer.tokenize(&mut buf);
+    let tokens: Vec<Token<'_>> = lexer.tokenize(&buf);
 
     for token in tokens.iter() {
         print!("{:?}", token);
@@ -36,7 +36,8 @@ fn main() -> miette::Result<()> {
 
     let mut parser = Parser::new(0, &tokens);
 
-    let parsed = parse(&mut parser)?;
+    let source = buf.clone();
+    let parsed = parse(&mut parser).map_err(|report| report.with_source_code(source));
 
     println!("{:?}", parsed);
 
