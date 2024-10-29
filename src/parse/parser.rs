@@ -1,5 +1,5 @@
 use log::{debug, trace};
-use miette::bail;
+use miette::{bail, miette};
 
 use crate::token::Token;
 
@@ -80,6 +80,17 @@ impl<'a> Parser<'a> {
     pub fn last(&mut self) -> Option<&Token<'a>> {
         self.stack.last()
     }
+
+    pub fn expect(
+        &mut self,
+        condition: impl FnOnce(&Token<'a>) -> bool,
+    ) -> miette::Result<Token<'a>> {
+        match self.next_token() {
+            Some(token) if condition(&token) => Ok(token),
+            Some(token) => Err(miette!("Unexpected token {:?}", token)),
+            None => Err(miette!("Unexpected end of token stream")),
+        }
+    }
 }
 
 macro_rules! expect {
@@ -131,12 +142,12 @@ pub fn parse<'a>(parser: &mut Parser<'a>) -> miette::Result<Vec<Token<'a>>> {
 
 fn function_declaration(parser: &mut Parser<'_>) -> miette::Result<()> {
     trace!("Parsing function declaration");
-    expect!(parser.next_token(), Token::FunctionDeclaration);
+    parser.expect(|token| matches!(token, Token::FunctionDeclaration(_)))?;
 
-    let ident = expect!(parser.next_token(), Token::Identifier);
+    let ident = parser.expect(|token| matches!(token, Token::Identifier(_)))?;
     trace!("Found identifier {:?}", &ident);
 
-    let open_bracket = expect!(parser.next_token(), Token::OpenBracket);
+    let open_bracket = parser.expect(|token| matches!(token, Token::OpenBracket(_)))?;
     parser.stack.push(open_bracket);
 
     // Parse parameters
