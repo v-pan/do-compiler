@@ -6,7 +6,9 @@ use std::io::Read;
 
 use llvm_compiler::parse::parser::parse;
 use llvm_compiler::parse::parser::Parser;
-use llvm_compiler::{lexer::AsciiLexer, token::Token, READER_CAPACITY};
+use llvm_compiler::{lexer::AsciiLexer, token::Token};
+
+pub const READER_CAPACITY: usize = 100_000_000;
 
 fn main() -> miette::Result<()> {
     pretty_env_logger::init();
