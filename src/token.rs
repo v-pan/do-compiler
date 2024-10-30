@@ -4,29 +4,45 @@ use miette::bail;
 use crate::parse::parser::Parser;
 
 #[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, token_macro::Token)]
 pub enum Token<'a> {
     // Operators
+    #[word = "+"]
     Plus(Inner<'a>),
+    #[word = "-"]
     Minus(Inner<'a>),
 
+    #[word = ">"]
     GreaterThan(Inner<'a>),
+    #[word = "="]
     Equals(Inner<'a>),
 
+    #[word = ":"]
     Colon(Inner<'a>),
+    #[word = ","]
     Comma(Inner<'a>),
+    #[word = "->"]
     Arrow(Inner<'a>),
 
     // Brackets
+    #[word = "func"]
     FunctionDeclaration(Inner<'a>),
+    #[word = ";"]
     SemiColon(Inner<'a>),
 
+    #[word = "("]
     OpenBracket(Inner<'a>),
+    #[word = ")"]
     CloseBracket(Inner<'a>),
+    #[word = "{"]
     OpenCurly(Inner<'a>),
+    #[word = "}"]
     CloseCurly(Inner<'a>),
 
     // Whitespace
+    #[word = " "]
     Space(Inner<'a>),
+    #[word = "\n"]
     Newline(Inner<'a>),
 
     Identifier(Inner<'a>),
@@ -39,80 +55,22 @@ pub struct Inner<'a> {
     pub slice: &'a str,
 }
 
-impl<'a> Token<'a> {
-    pub fn from(loc: usize, slice: &'a str) -> Self {
-        match slice {
-            // Operators
-            "+" => Token::Plus(Inner { loc, slice }),
-            "-" => Token::Minus(Inner { loc, slice }),
-
-            ">" => Token::GreaterThan(Inner { loc, slice }),
-            "=" => Token::Equals(Inner { loc, slice }),
-
-            ":" => Token::Colon(Inner { loc, slice }),
-            "," => Token::Comma(Inner { loc, slice }),
-            "->" => Token::Arrow(Inner { loc, slice }),
-
-            // Brackets
-            ";" => Token::SemiColon(Inner { loc, slice }),
-            "func" => Token::FunctionDeclaration(Inner { loc, slice }),
-
-            "(" => Token::OpenBracket(Inner { loc, slice }),
-            ")" => Token::CloseBracket(Inner { loc, slice }),
-            "{" => Token::OpenCurly(Inner { loc, slice }),
-            "}" => Token::CloseCurly(Inner { loc, slice }),
-
-            // Whitespace
-            " " => Token::Space(Inner { loc, slice }),
-            "\n" => Token::Newline(Inner { loc, slice }),
-
-            _ => Token::Identifier(Inner { loc, slice }),
+impl<'a> Inner<'a> {
+    pub fn new(loc: usize, slice: &'a str) -> Self {
+        Self {
+            loc,
+            slice,
         }
     }
+}
 
-    pub fn loc(&self) -> usize {
-        match self {
-            Token::Plus(inner)
-            | Token::Minus(inner)
-            | Token::GreaterThan(inner)
-            | Token::Equals(inner)
-            | Token::Colon(inner)
-            | Token::Comma(inner)
-            | Token::Arrow(inner)
-            | Token::FunctionDeclaration(inner)
-            | Token::SemiColon(inner)
-            | Token::OpenBracket(inner)
-            | Token::CloseBracket(inner)
-            | Token::OpenCurly(inner)
-            | Token::CloseCurly(inner)
-            | Token::Space(inner)
-            | Token::Newline(inner)
-            | Token::Identifier(inner)
-            | Token::Unknown(inner) => inner.loc,
-        }
-    }
 
-    pub fn as_str(&self) -> &str {
-        match self {
-            Token::Plus(inner)
-            | Token::Minus(inner)
-            | Token::GreaterThan(inner)
-            | Token::Equals(inner)
-            | Token::Colon(inner)
-            | Token::Comma(inner)
-            | Token::Arrow(inner)
-            | Token::FunctionDeclaration(inner)
-            | Token::SemiColon(inner)
-            | Token::OpenBracket(inner)
-            | Token::CloseBracket(inner)
-            | Token::OpenCurly(inner)
-            | Token::CloseCurly(inner)
-            | Token::Space(inner)
-            | Token::Newline(inner)
-            | Token::Identifier(inner)
-            | Token::Unknown(inner) => inner.slice,
-        }
-    }
+
+
+
+
+
+
 
     pub fn precedence(&self) -> (u8, u8) {
         match self {

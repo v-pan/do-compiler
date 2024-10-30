@@ -1,12 +1,129 @@
 // use std::{fs::File, io::Write};
 
+use std::process::abort;
+
 use proc_macro::TokenStream;
 use proc_macro2::{TokenTree::Ident, TokenTree::Literal};
-use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Expr, Lit, Meta};
+use proc_macro_error::{abort, proc_macro_error};
+use quote::{quote, ToTokens};
+use syn::{parse_macro_input, spanned::Spanned, Data, DeriveInput, Expr, Lit, Meta};
+
+#[proc_macro_error]
+#[proc_macro_derive(Token, attributes(word))]
+pub fn token_derive(_tokens: TokenStream) -> TokenStream {
+    let tokens = _tokens.clone();
+    let input = parse_macro_input!(tokens as DeriveInput);
+
+    let lifetimes: Vec<_> = input
+        .generics
+        .lifetimes()
+        .map(|lifetime_param| lifetime_param.into_token_stream())
+        .collect();
+
+    let lifetime = lifetimes.first();
+    if lifetime.is_none() {
+        abort!(
+            input.generics.span(),
+            "Expected at least one lifetime for string slices"
+        );
+    }
+
+    let mut variant_idents = vec![];
+    let mut words = vec![];
+
+    let output = if let Data::Enum(enum_data) = input.data {
+        let enum_ident = input.ident;
+
+        for variant in enum_data.variants {
+            variant_idents.push(variant.ident);
+
+            for attr in variant.attrs {
+                if let Meta::NameValue(meta) = attr.meta {
+                    if let Some(ident) = meta.path.get_ident() {
+                        if *ident != "word" {
+                            abort!(ident.span(), "Invalid attribute");
+                        }
+                    } else {
+                        abort!(meta.path.span(), "Expected ident");
+                    }
+
+                    if let Expr::Lit(literal) = meta.value {
+                        if let Lit::Str(str_literal) = literal.lit {
+                            words.push(str_literal.value());
+                        } else {
+                            abort!(literal.span(), "Expected str literal");
+                        }
+                    } else {
+                        abort!(meta.value.span(), "Expected str literal");
+                    }
+                } else {
+                    abort!(attr.span(), "Expected name = \"value\" pair");
+                }
+            }
+        }
+
+        let lifetime = lifetime.unwrap();
+        // Implement ::from(loc: usize, word: &str)
+        let from = quote! {
+            impl<#(#lifetimes),*> #enum_ident<#(#lifetimes),*> {
+                pub fn from(loc: usize, slice: & #lifetime str) -> Self {
+                    match slice {
+                        #(#words => Self::#variant_idents(Inner::new(loc, slice))),*,
+                        _ => Self::Identifier(Inner::new(loc, slice)),
+                    }
+                }
+            }
+        };
+
+        // Implement getters for variants
+        let impls = quote! {
+            impl<#(#lifetimes),*> #enum_ident<#(#lifetimes),*> {
+                pub fn inner_mut(&mut self) -> &mut Inner<#(#lifetimes),*> {
+                    match self {
+                        #(Self::#variant_idents(inner) => inner),*
+                    }
+                }
+
+                pub fn inner(&self) -> &Inner<#(#lifetimes),*> {
+                    match self {
+                        #(Self::#variant_idents(inner) => inner),*
+                    }
+                }
+
+                pub fn spaced(&self) -> bool {
+                    match self {
+                        #(Self::#variant_idents(inner) => inner.spaced),*
+                    }
+                }
+
+                pub fn loc(&self) -> usize {
+                    match self {
+                        #(Self::#variant_idents(inner) => inner.loc),*
+                    }
+                }
+
+                pub fn as_str(&self) -> &str {
+                    match self {
+                        #(Self::#variant_idents(inner) => inner.slice),*
+                    }
+                }
+            }
+        };
+
+        quote! {
+            #impls
+
+            #from
+        }
+    } else {
+        quote! {}
+    };
+
+    output.into()
+}
 
 #[proc_macro_derive(TokenTypeDef, attributes(word, char, pair, operator))]
-pub fn token_derive(_tokens: TokenStream) -> TokenStream {
+pub fn token_type_derive(_tokens: TokenStream) -> TokenStream {
     let tokens = _tokens.clone();
     let input = parse_macro_input!(tokens as DeriveInput);
     // let mut log = File::create("token_macro.log").unwrap();
