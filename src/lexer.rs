@@ -23,7 +23,19 @@ impl<'a> AsciiLexer {
                     // Get the str between both indices
                     let word: &str = unsafe { buf.get_unchecked(last_idx..idx) };
 
-                    let word_token = Token::from(last_idx, word);
+                    let mut word_token = Token::from(last_idx, word);
+
+                    if let Token::Unknown(inner) = word_token {
+                        // Either a literal or an identifier.
+                        let first_char = unsafe { inner.slice.chars().next().unwrap_unchecked() };
+
+                        if first_char.is_numeric() {
+                            // Numeric literal. TODO: Try figure out what kind here?
+                            word_token = Token::NumericLiteral(inner);
+                        } else {
+                            word_token = Token::Identifier(inner);
+                        }
+                    }
 
                     tokens.push(word_token);
                 }
