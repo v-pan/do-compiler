@@ -1,10 +1,10 @@
 // #![feature(iter_map_windows)]
+mod print;
 
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Read;
 
-use llvm_compiler::parse::parser::parse;
 use llvm_compiler::parse::parser::Parser;
 use llvm_compiler::{lexer::AsciiLexer, token::Token};
 
@@ -39,9 +39,11 @@ fn main() -> miette::Result<()> {
     let mut parser = Parser::new(0, &tokens);
 
     let source = buf.clone();
-    let parsed = parse(&mut parser).map_err(|report| report.with_source_code(source));
+    // let parsed = parse(&mut parser).map_err(|report| report.with_source_code(source));
 
-    println!("{:?}", parsed);
+    // println!("{:?}", parsed);
+
+    // print::print_parsed_tree(&parsed.unwrap());
 
     Ok(())
 }
