@@ -10,7 +10,7 @@ impl<'a> AsciiLexer {
     pub fn tokenize(&mut self, buf: &'a String) -> Vec<Token<'a>> {
         let mut tokens = Vec::new();
 
-        let mut last_token = Token::Unknown(Inner { loc: 0, slice: "" });
+        let mut last_token = Token::Unknown(Inner::new(0, ""));
         let mut last_idx = 0;
 
         for (idx, byte) in buf.as_bytes().iter().enumerate() {
