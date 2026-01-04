@@ -4,11 +4,7 @@ use std::{
 };
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use llvm_compiler::{
-    lexer::AsciiLexer,
-    parse::parser::{parse, Parser},
-    token::Token,
-};
+use llvm_compiler::{lexer::AsciiLexer, parse::parser::Parser, token::Token};
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("lexing", |b| {
@@ -34,5 +30,26 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, criterion_benchmark);
+pub fn parsing_benchmark(c: &mut Criterion) {
+    const READER_CAPACITY: usize = 100_000_000;
+    let file = File::open("./examples/infix_1000_lines.src").unwrap();
+    let mut reader = BufReader::with_capacity(READER_CAPACITY, file);
+
+    let mut lexer = AsciiLexer::new();
+    let mut buf = String::new();
+    let _ = reader.read_to_string(&mut buf).unwrap();
+
+    let tokens: Vec<Token<'_>> = lexer.tokenize(&buf);
+
+    c.bench_function("parsing", |b| {
+        b.iter(|| {
+            let parser = Parser::new(0, &tokens);
+            let parsed = parser.parse().unwrap();
+
+            black_box(parsed);
+        });
+    });
+}
+
+criterion_group!(benches, criterion_benchmark, parsing_benchmark);
 criterion_main!(benches);
