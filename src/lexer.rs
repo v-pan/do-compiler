@@ -49,7 +49,7 @@ impl<'a> AsciiLexer {
                     Token::Space(_) => {
                         let last_token = tokens.last_mut();
                         if let Some(last_token) = last_token {
-                            last_token.inner_mut().spaced = true;
+                            // last_token.inner_mut().spaced = true;
                         }
                     }
                     // Look behind to see if this is a two character boundary token

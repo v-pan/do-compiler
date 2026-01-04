@@ -13,7 +13,7 @@ where
         None => return String::from("[]"),
         Some(x) => format!("{}", x),
     };
-    let body = iterator.fold(head, |a, v| format!("{}{}", a, v));
+    let body = iterator.fold(head, |a, v| format!("{} {}", a, v));
     format!("{}", body)
 }
 

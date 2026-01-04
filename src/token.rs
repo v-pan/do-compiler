@@ -1,6 +1,4 @@
-use std::{
-    fmt::{self, Formatter},
-};
+use std::fmt::{self, Formatter};
 
 #[derive(Debug, Clone, Copy, token_macro::Token)]
 pub enum Token<'a> {
@@ -69,7 +67,7 @@ pub enum Token<'a> {
 pub struct Inner<'a> {
     pub loc: usize,
     pub slice: &'a str,
-    pub spaced: bool,
+    // pub spaced: bool,
 }
 
 impl<'a> Inner<'a> {
@@ -77,7 +75,7 @@ impl<'a> Inner<'a> {
         Self {
             loc,
             slice,
-            spaced: false,
+            // spaced: false,
         }
     }
 }
@@ -93,14 +91,13 @@ impl<'a> Token<'a> {
             _ => (0, 0),
         }
     }
-
 }
 
 impl<'t> fmt::Display for Token<'t> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let inner = self.inner();
-        let spacing = if inner.spaced { " " } else { "" };
+        // let spacing = if inner.spaced { " " } else { "" };
         let slice = inner.slice.to_string();
-        write!(f, "{}{}", slice, spacing)
+        write!(f, "{}", slice)
     }
 }

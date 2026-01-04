@@ -102,11 +102,11 @@ pub fn token_derive(_tokens: TokenStream) -> TokenStream {
                     }
                 }
 
-                pub fn spaced(&self) -> bool {
-                    match self {
-                        #(Self::#variant_idents(inner) => inner.spaced),*
-                    }
-                }
+                // pub fn spaced(&self) -> bool {
+                //     match self {
+                //         #(Self::#variant_idents(inner) => inner.spaced),*
+                //     }
+                // }
 
                 pub fn loc(&self) -> usize {
                     match self {

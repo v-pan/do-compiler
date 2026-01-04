@@ -117,11 +117,12 @@ impl<'t> Parser<'t> {
                     Some(token) => {
                         trace!("Erroring out, last_token: {:?}", token);
                         let start = token.loc();
-                        let length = if token.spaced() {
-                            token.as_str().len() + 1
-                        } else {
-                            token.as_str().len()
-                        };
+                        // let length = if token.spaced() {
+                        //     token.as_str().len() + 1
+                        // } else {
+                        //     token.as_str().len()
+                        // };
+                        let length = token.as_str().len();
 
                         Err(UnexpectedToken {
                             found: None,
