@@ -33,8 +33,14 @@ impl<'a> AsciiLexer {
                 // Store the boundary token
                 let token = Token::from(idx, word);
 
-                // Look behind to see if this is a two character boundary token
                 match token {
+                    Token::Space(_) => {
+                        let last_token = tokens.last_mut();
+                        if let Some(last_token) = last_token {
+                            last_token.inner_mut().spaced = true;
+                        }
+                    }
+                    // Look behind to see if this is a two character boundary token
                     Token::GreaterThan(_) => {
                         if let Token::Minus(_) = last_token {
                             tokens.pop();
