@@ -5,11 +5,7 @@ use thiserror::Error;
 #[diagnostic()]
 #[error("Unexpected token {found:?}")]
 pub struct UnexpectedToken {
-    pub found: String,
+    pub found: Option<String>,
 
     pub unexpected_span: LabeledSpan,
-}
-
-impl UnexpectedToken {
-    fn expected(self) {}
 }
