@@ -90,9 +90,11 @@ impl<'a> Token<'a> {
     pub fn precedence(&self) -> (u8, u8) {
         match self {
             // Operators
-            Token::OpenBracket(_) => (1, 2),
             Token::Plus(_) | Token::Minus(_) => (3, 4),
             Token::Times(_) => (5, 6),
+
+            Token::Equals(_) | Token::OpenCurly(_) => (3, 4),
+            Token::Colon(_) => (5, 6),
 
             _ => (0, 0),
         }
