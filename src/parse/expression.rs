@@ -1,13 +1,14 @@
 use crate::parse::parser::Parser;
+use crate::parse::state::{ExpressionState, ParseState};
 use crate::parsed_to_str;
 use crate::token::Token;
 use log::trace;
 
-pub(super) fn expression<'p, 't>(parser: &'p mut Parser<'t>) -> miette::Result<()> {
+pub(super) fn expression<'p, 't>(parser: &'p mut Parser<'t>, last_precedence: u8) -> () {
     // Write from the stack until pattern is matched, discarding the matched variant
     macro_rules! write_until {
         (None) => {
-            while let Some(popped) = parser.pop() {
+            while let Some(popped) = parser.pop_token() {
                 match popped {
                     _ => {
                         parser.write(popped);
@@ -16,7 +17,7 @@ pub(super) fn expression<'p, 't>(parser: &'p mut Parser<'t>) -> miette::Result<(
             }
         };
         ($($variant:path)|+) => {
-            while let Some(popped) = parser.pop() {
+            while let Some(popped) = parser.pop_token() {
                 match popped {
                     $($variant(_))|* => {
                         break;
@@ -36,79 +37,90 @@ pub(super) fn expression<'p, 't>(parser: &'p mut Parser<'t>) -> miette::Result<(
         };
     }
 
-    // let mut last_token = Token::Unknown(Inner::new(0, ""));
-    let mut last_rp = 0; // Right precedence of the operator just to the left of our current position
+    // let token = parser.next_token();
+
+    // if let None = token {
+    //     trace!("Found None");
+    //     return;
+    // }
+
+    // let token = token.unwrap();
+    // trace!("Found {}", &token);
 
     loop {
-        let token = parser.next_token();
-
-        if let None = token {
-            trace!("Found None");
-            return Ok(());
-        }
-
-        let token = token.unwrap();
-        trace!("Found {}", &token);
-        match token {
-            // Write idents/literals immediately
-            Token::Identifier(_) | Token::NumericLiteral(_) => {
-                parser.write(token);
-            }
-
-            // Handle end of expression
-            Token::SemiColon(_) => {
-                trace!("End of expression");
-
-                write_until!(None);
-                parser.write(token);
-                return Ok(());
-            }
-
-            // If the incoming token is an intial, write it and push it to the stack
-            Token::OpenBracket(_) | Token::OpenCurly(_) => {
-                let (_, rp) = token.precedence();
-
-                parser.write(token);
-
-                parser.push(token);
-                last_rp = rp;
-            }
-
-            // If the incoming token is a terminal, pop and write the stack until you come across an initial token with small enough precedence
-            Token::CloseBracket(_) | Token::CloseCurly(_) => {
-                write_until!(Token::OpenBracket | Token::OpenCurly);
-
-                last_rp = last_precedence!();
-
-                parser.write(token);
-            }
-
-            _ => {
-                let (lp, rp) = token.precedence();
-                if lp < last_rp {
-                    // If the incoming operator has lower lp than the last rp on the stack, pop and write until this is no longer the case
-                    trace!("Popping until lp < popped_rp");
-                    while let Some(popped) = parser.pop() {
-                        let (_pop_lp, pop_rp) = popped.precedence();
-                        trace!("Popped {}, with ({}, {})", &popped, _pop_lp, pop_rp);
-
-                        parser.write(popped);
-                        if lp < pop_rp {
-                            break;
-                        }
-                    }
-                }
-                // If the incoming operator has higher lp than the last rp on top of the stack, push
-                parser.push(token);
-                last_rp = rp;
-            }
-        }
+        let state = parser.peek_state();
+        let initiator = match state {
+            ParseState::Expression(inner) => inner.initiator,
+            _ => panic!("Expected expression state"),
+        };
 
         trace!(
-            "LRP: {}, Stack: {}, Parsed: {}",
-            last_rp,
+            "stack: {}, parsed: {}",
             parsed_to_str(&parser.stack),
             parsed_to_str(&parser.parsed)
         );
+        let token = parser.next_token();
+        let token = match token {
+            None => {
+                write_until!(None);
+                break;
+            }
+            Some(token) => {
+                if token.terminates(initiator) {
+                    trace!("End of expression, popping until {}", &initiator);
+                    while let Some(popped) = parser.pop_token() {
+                        if popped == initiator {
+                            break;
+                        }
+                        parser.write(popped);
+                    }
+                    parser.write(token);
+                    break;
+                }
+
+                match token {
+                    Token::OpenBracket(_) | Token::VariableDeclaration(_) => {
+                        parser.push(token);
+                        parser.write(token);
+
+                        parser.push_state(ExpressionState::new(token).into());
+                        become expression(parser, 0);
+                    }
+                    Token::Identifier(_) | Token::NumericLiteral(_) => {
+                        trace!("Found non-operator {}", &token);
+
+                        parser.write(token);
+                        continue;
+                    }
+                    _ => token,
+                }
+            }
+        };
+
+        let (lp, rp) = token.precedence();
+        trace!("Found operator {token} ({lp}, {rp})");
+        if lp < last_precedence {
+            trace!("{lp} < {last_precedence}, popping stack");
+
+            // If the incoming operator has lower lp than the last rp on the stack, pop and write until this is no longer the case
+            while let Some(popped) = parser.pop_token() {
+                let (_pop_lp, pop_rp) = popped.precedence();
+                trace!("    popped {}, with ({}, {})", &popped, _pop_lp, pop_rp);
+
+                if popped != initiator {
+                    parser.write(popped)
+                };
+                if lp >= pop_rp {
+                    break;
+                }
+            }
+
+            parser.push(token);
+            continue;
+        }
+
+        parser.push(token);
+        become expression(parser, rp);
     }
+    parser.pop_state();
 }

@@ -1,7 +1,13 @@
 use log::trace;
 use miette::{miette, Context, LabeledSpan};
 
-use crate::{parse::expression::expression, token::Token};
+use crate::{
+    parse::{
+        expression::expression,
+        state::{ExpressionState, ParseState},
+    },
+    token::Token,
+};
 
 use super::error::UnexpectedToken;
 
@@ -10,6 +16,8 @@ pub struct Parser<'t> {
     tokens: &'t [Token<'t>],
     pub(super) stack: Vec<Token<'t>>,
     pub(super) parsed: Vec<Token<'t>>,
+
+    pub(super) context: Vec<ParseState<'t>>,
 }
 
 impl<'t> Parser<'t> {
@@ -19,6 +27,8 @@ impl<'t> Parser<'t> {
             tokens,
             stack: Vec::new(), // with_capacity(tokens.len()),
             parsed: Vec::with_capacity(tokens.len()),
+
+            context: Vec::new(),
         }
     }
 
@@ -76,12 +86,29 @@ impl<'t> Parser<'t> {
         self.stack.push(token);
     }
 
-    pub(super) fn pop(&mut self) -> Option<Token<'t>> {
+    pub(super) fn push_state(&mut self, state: ParseState<'t>) {
+        self.context.push(state);
+    }
+
+    pub(super) fn pop_state(&mut self) -> ParseState<'t> {
+        self.context
+            .pop()
+            .expect("Popped state but state stack was empty")
+    }
+
+    pub(super) fn peek_state(&self) -> ParseState<'t> {
+        self.context
+            .last()
+            .copied()
+            .expect("Peeked state but state stack was empty")
+    }
+
+    pub(super) fn pop_token(&mut self) -> Option<Token<'t>> {
         self.stack.pop()
     }
 
-    pub(super) fn last(&mut self) -> Option<&Token<'t>> {
-        self.stack.last()
+    pub(super) fn last(&mut self) -> Option<Token<'t>> {
+        self.stack.last().copied()
     }
 
     pub(super) fn write(&mut self, token: Token<'t>) {
@@ -165,23 +192,21 @@ impl<'t> Parser<'t> {
 
         let token = self.peek_token().wrap_err_with(|| "Expected token")?;
 
+        // self.state.push(ParseState::TopLevel);
+
         match token {
+            // Token::FunctionDeclaration(_) => {
+            //     self.state.push(ParseState::FunctionDecl);
+            //     function_declaration(&mut self);
+            // }
             _ => {
-                expression(&mut self)?;
+                self.push_state(ExpressionState::new(token).into());
+                expression(&mut self, 0);
             }
         };
 
         Ok(self.parsed)
     }
-}
-
-fn function_declaration<'p, 't>(parser: &'p mut Parser<'t>) -> miette::Result<()> {
-    let identifier = parser.expect_with_msg(
-        |token| matches!(token, Token::Identifier(_)),
-        |err| format!("Expected function name, found {:?}", err.found),
-    );
-
-    Ok(())
 }
 
 // fn identifier_or_literal<'t>(parser: &mut Parser<'t>) -> miette::Result<Token<'t>> {
