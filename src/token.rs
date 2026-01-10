@@ -102,6 +102,23 @@ impl<'a> Token<'a> {
             _ => (0, 0),
         }
     }
+
+    pub(crate) fn terminates<'buffer>(&self, initiator: Token<'buffer>) -> bool {
+        let is_terminal = match self {
+            Token::CloseBracket(_) => matches!(initiator, Token::OpenBracket(_)),
+            Token::SemiColon(_) => matches!(
+                initiator,
+                Token::FunctionDeclaration(_) | Token::VariableDeclaration(_)
+            ),
+            _ => false,
+        };
+
+        return is_terminal;
+    }
+
+    pub(crate) fn initiates<'buffer>(&self, terminator: Token<'buffer>) -> bool {
+        terminator.terminates(*self)
+    }
 }
 
 impl<'buffer> Default for Token<'buffer> {
