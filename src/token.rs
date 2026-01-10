@@ -99,6 +99,15 @@ impl<'a> Token<'a> {
     }
 }
 
+impl<'buffer> Default for Token<'buffer> {
+    fn default() -> Self {
+        Self::Unknown(Inner {
+            loc: 0,
+            slice: "default",
+        })
+    }
+}
+
 impl<'t> fmt::Display for Token<'t> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let inner = self.inner();
