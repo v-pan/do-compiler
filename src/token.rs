@@ -39,6 +39,9 @@ pub enum Token<'buffer> {
     #[initial]
     #[word = "fn"]
     FunctionDeclaration(Inner<'buffer>),
+    #[initial]
+    #[word = "var"]
+    VariableDeclaration(Inner<'buffer>),
     #[terminal]
     #[word = ";"]
     SemiColon(Inner<'buffer>),
