@@ -29,6 +29,39 @@ mod tests {
             .try_init();
     }
 
+    fn lex<'buf>(buf: &'buf String) -> Vec<Token<'buf>> {
+        let mut lexer = AsciiLexer::new();
+        let tokens = lexer.tokenize(buf);
+        return tokens;
+    }
+
+    fn parse<'buf, 't>(tokens: &'t [Token<'buf>]) -> Vec<Token<'t>> {
+        let parser = Parser::new(0, &tokens);
+        let parsed = parser.parse().unwrap();
+
+        trace!("Final parsed tokens:");
+        trace!("{}", parsed_to_str(&parsed));
+
+        return parsed;
+    }
+
+    fn matches_target<'buf, 't>(parsed: &[Token<'buf>], target: &'t String) -> bool {
+        let mut lexer = AsciiLexer::new();
+        let target = lexer.tokenize(&target);
+
+        let matching = parsed
+            .iter()
+            .zip(&target)
+            .all(|(a, b)| a.as_str() == b.as_str());
+        return matching;
+    }
+
+    fn matches_length<'buf, 't>(tokens: &[Token<'buf>], target: &'t String) -> bool {
+        let mut lexer = AsciiLexer::new();
+        let target = lexer.tokenize(&target);
+        return tokens.len() == target.len();
+    }
+
     #[test]
     fn plus_is_operator() {
         let token = Token::from(0, "+");
@@ -187,25 +220,41 @@ mod tests {
     fn parser_mixed_addition_multiplication_parentheses() {
         init_logging();
 
-        let mut lexer = AsciiLexer::new();
-        let buf = String::from("A * (B + C * D) + E;");
+        let input = String::from("A * (B + C * D) + E;");
+        let tokens = lex(&input);
+        let parsed = parse(&tokens);
 
-        let tokens: Vec<Token<'_>> = lexer.tokenize(&buf);
+        let target = String::from("A ( B C D * + ) * E +;");
 
-        let parser = Parser::new(0, &tokens);
-        let parsed = parser.parse().unwrap();
+        assert!(matches_length(&tokens, &target));
+        assert!(matches_target(&parsed, &target));
+    }
 
-        trace!("Final parsed tokens:");
-        trace!("{}", parsed_to_str(&parsed));
+    #[test]
+    fn parser_variable_initialisation() {
+        init_logging();
 
-        let target_buf = String::from("A ( B C D * + ) * E +;");
-        let target = lexer.tokenize(&target_buf);
+        let input = String::from("var test: type = value;");
+        let tokens = lex(&input);
+        let parsed = parse(&tokens);
 
-        let matching = parsed
-            .iter()
-            .zip(&target)
-            .all(|(a, b)| a.as_str() == b.as_str());
-        assert!(matching);
-        assert!(tokens.len() == target.len());
+        let target = String::from("var test type : value = ;");
+
+        assert!(matches_length(&tokens, &target));
+        assert!(matches_target(&parsed, &target));
+    }
+
+    #[test]
+    fn parser_function_declaration() {
+        init_logging();
+
+        let input = String::from("fn test(arg1: type1, arg2: type2): returntype {}");
+        let tokens = lex(&input);
+        let parsed = parse(&tokens);
+
+        let target = String::from("fn test ( arg1 type1 : arg2 type2 : , ) returntype : { }");
+
+        assert!(matches_length(&tokens, &target));
+        assert!(matches_target(&parsed, &target));
     }
 }
