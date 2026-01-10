@@ -9,7 +9,7 @@ use llvm_compiler::{lexer::AsciiLexer, parse::parser::Parser, token::Token};
 pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("lexing", |b| {
         const READER_CAPACITY: usize = 100_000_000;
-        let file = File::open("./examples/infix_1000_lines.src").unwrap();
+        let file = File::open("./examples/parse_bench.src").unwrap();
         let mut reader = BufReader::with_capacity(READER_CAPACITY, file);
 
         let mut lexer = AsciiLexer::new();
@@ -32,7 +32,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
 
 pub fn parsing_benchmark(c: &mut Criterion) {
     const READER_CAPACITY: usize = 100_000_000;
-    let file = File::open("./examples/infix_1000_lines.src").unwrap();
+    let file = File::open("./examples/parse_bench.src").unwrap();
     let mut reader = BufReader::with_capacity(READER_CAPACITY, file);
 
     let mut lexer = AsciiLexer::new();
