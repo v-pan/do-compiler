@@ -1,77 +1,82 @@
 use std::fmt::{self, Formatter};
 
 #[derive(Debug, Clone, Copy, token_macro::Token)]
-pub enum Token<'a> {
+pub enum Token<'buffer> {
     // --- Operators ---
     // Arithmetic Operators
     #[operator]
     #[word = "+"]
-    Plus(Inner<'a>),
+    Plus(Inner<'buffer>),
 
     #[operator]
     #[word = "-"]
-    Minus(Inner<'a>),
+    Minus(Inner<'buffer>),
 
     #[operator]
     #[word = "*"]
-    Times(Inner<'a>),
+    Times(Inner<'buffer>),
 
     // Comparison Operators
+    #[operator]
     #[word = ">"]
-    GreaterThan(Inner<'a>),
+    GreaterThan(Inner<'buffer>),
+    #[operator]
     #[word = "="]
-    Equals(Inner<'a>),
+    Equals(Inner<'buffer>),
 
     // Misc Operators
+    #[operator]
     #[word = ":"]
-    Colon(Inner<'a>),
+    Colon(Inner<'buffer>),
+    #[operator]
     #[word = ","]
-    Comma(Inner<'a>),
+    Comma(Inner<'buffer>),
+    #[operator]
     #[word = "->"]
-    Arrow(Inner<'a>),
+    Arrow(Inner<'buffer>),
 
     // --- Initial / Terminal tokens ---
     #[initial]
     #[word = "fn"]
-    FunctionDeclaration(Inner<'a>),
+    FunctionDeclaration(Inner<'buffer>),
     #[terminal]
     #[word = ";"]
-    SemiColon(Inner<'a>),
+    SemiColon(Inner<'buffer>),
 
     #[initial]
     #[word = "("]
-    OpenBracket(Inner<'a>),
+    OpenBracket(Inner<'buffer>),
     #[terminal]
     #[word = ")"]
-    CloseBracket(Inner<'a>),
+    CloseBracket(Inner<'buffer>),
     #[initial]
     #[word = "{"]
-    OpenCurly(Inner<'a>),
+    OpenCurly(Inner<'buffer>),
     #[terminal]
     #[word = "}"]
-    CloseCurly(Inner<'a>),
+    CloseCurly(Inner<'buffer>),
 
     // --- Whitespace ---
     #[word = " "]
-    Space(Inner<'a>),
+    Space(Inner<'buffer>),
     #[word = "\n"]
-    Newline(Inner<'a>),
+    Newline(Inner<'buffer>),
 
     // --- Literals / Identifiers ---
-    NumericLiteral(Inner<'a>),
-    Identifier(Inner<'a>),
-    Unknown(Inner<'a>),
+    NumericLiteral(Inner<'buffer>),
+    Identifier(Inner<'buffer>),
+    Unknown(Inner<'buffer>),
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Inner<'a> {
+pub struct Inner<'buffer> {
     pub loc: usize,
-    pub slice: &'a str,
+    pub slice: &'buffer str,
     // pub spaced: bool,
 }
 
-impl<'a> Inner<'a> {
-    pub fn new(loc: usize, slice: &'a str) -> Self {
+impl<'buffer> Inner<'buffer> {
+    pub fn new(loc: usize, slice: &'buffer str) -> Self {
         Self {
             loc,
             slice,
@@ -81,6 +86,7 @@ impl<'a> Inner<'a> {
 }
 
 impl<'a> Token<'a> {
+    // TODO: Build precedence by transitively closing a graph of order relations
     pub fn precedence(&self) -> (u8, u8) {
         match self {
             // Operators
