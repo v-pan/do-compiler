@@ -1,18 +1,15 @@
 use log::trace;
 use miette::{miette, Context, LabeledSpan};
 
-use crate::{
-    parsed_to_str,
-    token::{Inner, Token},
-};
+use crate::{parse::expression::expression, token::Token};
 
 use super::error::UnexpectedToken;
 
 pub struct Parser<'t> {
     index: usize,
     tokens: &'t [Token<'t>],
-    stack: Vec<Token<'t>>,
-    parsed: Vec<Token<'t>>,
+    pub(super) stack: Vec<Token<'t>>,
+    pub(super) parsed: Vec<Token<'t>>,
 }
 
 impl<'t> Parser<'t> {
@@ -25,7 +22,7 @@ impl<'t> Parser<'t> {
         }
     }
 
-    fn peek_token(&self) -> Option<Token<'t>> {
+    pub(super) fn peek_token(&self) -> Option<Token<'t>> {
         let mut index = self.index;
 
         loop {
@@ -44,7 +41,7 @@ impl<'t> Parser<'t> {
         }
     }
 
-    fn next_token(&mut self) -> Option<Token<'t>> {
+    pub(super) fn next_token(&mut self) -> Option<Token<'t>> {
         loop {
             if self.index > self.tokens.len() - 1 {
                 return None;
@@ -61,7 +58,7 @@ impl<'t> Parser<'t> {
         }
     }
 
-    fn consume_token(&mut self) {
+    pub(super) fn consume_token(&mut self) {
         let _ = self.next_token();
         // loop {
         //     let next_token = self.tokens[self.index];
@@ -75,26 +72,26 @@ impl<'t> Parser<'t> {
         // }
     }
 
-    fn push(&mut self, token: Token<'t>) {
+    pub(super) fn push(&mut self, token: Token<'t>) {
         self.stack.push(token);
     }
 
-    fn pop(&mut self) -> Option<Token<'t>> {
+    pub(super) fn pop(&mut self) -> Option<Token<'t>> {
         self.stack.pop()
     }
 
-    fn last(&mut self) -> Option<&Token<'t>> {
+    pub(super) fn last(&mut self) -> Option<&Token<'t>> {
         self.stack.last()
     }
 
-    fn write(&mut self, token: Token<'t>) {
+    pub(super) fn write(&mut self, token: Token<'t>) {
         self.parsed.push(token);
     }
 
     /// Peeks at the next token and passes it into `predicate`.
     ///
     /// When `predicate` returns `true`, this function returns `Ok` containing the peeked token. Otherwise, this function returns `Err`.
-    fn expect(
+    pub(super) fn expect(
         &mut self,
         predicate: impl FnOnce(&Token<'t>) -> bool,
     ) -> Result<Token<'t>, UnexpectedToken> {
@@ -141,7 +138,7 @@ impl<'t> Parser<'t> {
     /// Peeks at the next token and passes it into `predicate`.
     ///
     /// When `predicate` returns `true`, this function returns `Ok` containing the peeked token. Otherwise, this function returns a `miette::Err` decorated with `msg`.
-    fn expect_with_msg(
+    pub(super) fn expect_with_msg(
         &mut self,
         predicate: impl FnOnce(&Token<'t>) -> bool,
         msg: impl FnOnce(&UnexpectedToken) -> String,
@@ -178,93 +175,13 @@ impl<'t> Parser<'t> {
     }
 }
 
-fn expression<'p, 't>(parser: &'p mut Parser<'t>) -> miette::Result<()> {
-    // let mut last_token = Token::Unknown(Inner::new(0, ""));
-    let mut last_rp = 0; // Right precedence of the operator just to the left of our current position
-    loop {
-        let token = parser.next_token();
-        if let None = token {
-            trace!("Found None");
-            return Ok(());
-        }
-        let token = token.unwrap();
-        trace!("Found {}", &token);
+fn function_declaration<'p, 't>(parser: &'p mut Parser<'t>) -> miette::Result<()> {
+    let identifier = parser.expect_with_msg(
+        |token| matches!(token, Token::Identifier(_)),
+        |err| format!("Expected function name, found {:?}", err.found),
+    );
 
-        // if token.is_operator() || token.is_initial() {
-        match token {
-            // Write idents/literals immediately
-            Token::Identifier(_) | Token::NumericLiteral(_) => {
-                parser.write(token);
-            }
-
-            // Handle end of expression
-            Token::SemiColon(_) => {
-                trace!("End of expression");
-                while let Some(popped) = parser.pop() {
-                    parser.write(popped);
-                }
-                parser.write(token);
-                return Ok(());
-            }
-
-            // If the incoming token is an intial, push it to the stack
-            Token::OpenBracket(_) => {
-                let (_, rp) = token.precedence();
-
-                parser.write(token); // Write immediately so that it starts the expression it bounds
-
-                parser.push(token); // If incoming token is an initial, push to stack
-                last_rp = rp;
-            }
-
-            // If the incoming token is a terminal, write it, and pop and write the stack until you see the corresponding initial token
-            Token::CloseBracket(_) => {
-                while let Some(popped) = parser.pop() {
-                    match popped {
-                        Token::OpenBracket(_) => {
-                            break;
-                        }
-                        _ => {
-                            parser.write(popped);
-                        }
-                    }
-                }
-
-                if let Some(token) = parser.last() {
-                    let (_, rp) = token.precedence();
-                    last_rp = rp;
-                } else {
-                    last_rp = 0;
-                }
-
-                parser.write(token);
-            }
-
-            _ => {
-                let (lp, rp) = token.precedence();
-                if lp < last_rp {
-                    // If the incoming operator has lower lp than the last rp on the stack, pop and write until this is no longer the case
-                    while let Some(popped) = parser.pop() {
-                        let (_pop_lp, pop_rp) = popped.precedence();
-                        parser.write(popped);
-                        if lp < pop_rp {
-                            break;
-                        }
-                    }
-                }
-                // If the incoming operator has higher lp than the last rp on top of the stack, push
-                parser.push(token);
-                last_rp = rp;
-            }
-        }
-
-        trace!(
-            "LRP: {}, Stack: {}, Parsed: {}",
-            last_rp,
-            parsed_to_str(&parser.stack),
-            parsed_to_str(&parser.parsed)
-        );
-    }
+    Ok(())
 }
 
 // fn identifier_or_literal<'t>(parser: &mut Parser<'t>) -> miette::Result<Token<'t>> {
