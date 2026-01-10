@@ -118,3 +118,23 @@ impl<'t> fmt::Display for Token<'t> {
         write!(f, "{}", slice)
     }
 }
+
+impl<'t> Ord for Token<'t> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.loc().cmp(&other.loc())
+    }
+}
+
+impl<'t> PartialOrd for Token<'t> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<'t> PartialEq for Token<'t> {
+    fn eq(&self, other: &Self) -> bool {
+        self.loc() == other.loc()
+    }
+}
+
+impl<'t> Eq for Token<'t> {}
